@@ -1,0 +1,154 @@
+$primary-main: var(--palette-primary, #f37925);
+$primary-light: var(--palette-primary-light, #ff9649);
+$primary-dark: var(--palette-primary-dark, #c85c00);
+$primary-contrast: #ffffff;
+
+$secondary-main: #ffc936;
+$secondary-light: #ffdc69;
+$secondary-dark: #d1a500;
+$secondary-contrast: #121212;
+
+$tertiary-main: #f8f1e0;
+$tertiary-dark: #e9e2d1;
+$tertiary-contrast: #2d2813;
+
+$status-success: #2e7d32;
+$status-success-light: #4caf50;
+$status-success-dark: #1b5e20;
+
+$status-warning: #ed6c02;
+$status-warning-light: #ff9533;
+$status-warning-dark: #c56000;
+
+$status-error: #d32f2f;
+$status-error-light: #ef5350;
+$status-error-dark: #b71c1c;
+
+$status-info: #0277bd;
+$status-info-light: #03a9f4;
+$status-info-dark: #01579b;
+
+$highlight-main: #fff5d6;
+$highlight-light: #fffbea;
+$highlight-dark: #ffeab1;
+$highlight-contrast: #262210;
+
+$neutral-100: #f5f5f5;
+$neutral-200: #eeeeee;
+$neutral-300: #e0e0e0;
+$neutral-400: #bdbdbd;
+$neutral-500: #9e9e9e;
+$neutral-600: #757575;
+$neutral-700: #616161;
+$neutral-800: #424242;
+$neutral-900: #212121;
+
+:root,
+[data-theme="light"] {
+  --palette-primary: #f37925;
+  --palette-primary-light: #fff5ec;
+  --palette-primary-dark: #c85c00;
+  --palette-row-bg: #fff5ec;
+
+  --bg-main: #fffaf0;
+  --bg-paper: #ffffff;
+  --bg-subtle: #f5efe0;
+  --bg-left: var(--palette-primary, #f37925);
+
+  --text-primary: #262210;
+  --text-secondary: #433b20;
+  --text-muted: #888888;
+  --nav-text: #616161;
+  --nav-icon: #757575;
+
+  --border-color: #e9e2d1;
+  --shadow: rgba(0, 0, 0, 0.08);
+
+  /* ── Text Color Picker defaults (light) ── */
+  --text-sidebar: #616161;
+  --text-sidebar-active: #ffffff;
+  --text-sidebar-sub: #757575;
+  --text-sidebar-icon: #757575; /* ← was missing */
+  --text-appbar: #262210;
+  --text-appbar-icon: #616161;
+  --text-table-header: #f37925; /* ← match palette-primary so table header looks right by default */
+  --text-table-body: #433b20;
+  --text-table-action: #757575;
+  --text-card-title: #262210;
+  --text-card-label: #888888;
+  --text-btn-primary: #ffffff;
+  --text-btn-secondary: #433b20;
+  --text-input: #262210;
+  --text-placeholder: #9ca3af;
+  --text-input-label: #433b20;
+  --text-dialog-title: #262210;
+  --text-dialog-body: #433b20;
+  --text-badge: #ffffff;
+  --text-link: #2563eb;
+  --text-muted-custom: #888888;
+}
+
+[data-theme="dark"] {
+  --palette-primary: #f37925;
+  --palette-primary-light: #fff5ec;
+  --palette-primary-dark: #c85c00;
+  --palette-row-bg: #fff5ec;
+
+  --bg-main: #1c1c28;
+  --bg-paper: #26263a;
+  --bg-subtle: #2e2e42;
+  --bg-left: #0f0f1a;
+
+  --text-primary: #d4d0cb;
+  --text-secondary: #a8a49d;
+  --text-muted: #a0a0b8;
+  --nav-text: #d4d0cb;
+  --nav-icon: #a8a49d;
+
+  --border-color: rgba(255, 255, 255, 0.08);
+  --shadow: rgba(0, 0, 0, 0.35);
+
+  /* ── Text Color Picker defaults (dark) ── */
+  --text-sidebar: #d4d0cb;
+  --text-sidebar-active: #ffffff;
+  --text-sidebar-sub: #a8a49d;
+  --text-sidebar-icon: #a8a49d; /* ← was missing */
+  --text-appbar: #d4d0cb;
+  --text-appbar-icon: #a8a49d;
+  --text-table-header: #f37925; /* ← keep primary orange in dark too */
+  --text-table-body: #d4d0cb; /* ← was #a8a49d — too dim for body text in dark */
+  --text-table-action: #a8a49d;
+  --text-card-title: #d4d0cb;
+  --text-card-label: #a0a0b8;
+  --text-btn-primary: #ffffff;
+  --text-btn-secondary: #d4d0cb;
+  --text-input: #d4d0cb;
+  --text-placeholder: #a0a0b8;
+  --text-input-label: #a8a49d;
+  --text-dialog-title: #d4d0cb;
+  --text-dialog-body: #a8a49d;
+  --text-badge: #ffffff;
+  --text-link: #60a5fa;
+  --text-muted-custom: #a0a0b8;
+}
+
+$bg-main: var(--bg-main);
+$bg-cream: var(--bg-main);
+$bg-paper: var(--bg-paper);
+$bg-light: var(--bg-paper);
+$bg-subtle: var(--bg-subtle);
+$bg-default: var(--bg-subtle);
+$bg-left: var(--bg-left);
+
+$text-primary: var(--text-primary);
+$text-secondary: var(--text-secondary);
+$text-muted: var(--text-muted);
+$text-white: #ffffff;
+$text-contrast: #ffffff;
+$text-disabled: #bdbdbd;
+
+$border-color: var(--border-color);
+$border-light: var(--border-color);
+
+$nav-text: var(--nav-text);
+$nav-icon: var(--nav-icon);

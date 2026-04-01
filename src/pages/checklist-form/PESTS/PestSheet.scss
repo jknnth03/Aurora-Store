@@ -1,0 +1,36 @@
+@use "../../../styles/colors" as *;
+
+.pest-sheet {
+  &__stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px 0;
+  }
+
+  &__stack-item {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.78rem;
+    font-family: "Poppins", sans-serif;
+    color: $text-primary;
+    padding: 2px 0;
+
+    // bullet prefix
+    &::before {
+      content: "";
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: $primary-main;
+      margin-right: 7px;
+      flex-shrink: 0;
+      opacity: 0.6;
+    }
+
+    [data-theme="dark"] & {
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+}
