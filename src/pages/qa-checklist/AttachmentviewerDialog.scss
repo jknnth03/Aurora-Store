@@ -1,0 +1,135 @@
+@use "sass:color";
+
+$primary: #1a1a2e;
+$accent: #e87722;
+$accent-light: #fef3e8;
+$text-muted: #9a9aaa;
+$border: rgba(232, 119, 34, 0.3);
+$white: #ffffff;
+$bg: #fdf6ee;
+
+.avd {
+  &__paper {
+    border-radius: 16px !important;
+    font-family: "Poppins", sans-serif;
+    background: $bg !important;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18) !important;
+    max-height: 90vh !important;
+
+    [data-theme="dark"] & {
+      background: #1e1a14 !important;
+    }
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1.5px solid $border;
+    background: $bg;
+    border-radius: 16px 16px 0 0;
+
+    [data-theme="dark"] & {
+      background: #231e16;
+      border-bottom-color: rgba(232, 119, 34, 0.2);
+    }
+  }
+
+  &__header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  &__header-icon {
+    font-size: 1.3rem !important;
+    color: $accent !important;
+    flex-shrink: 0;
+  }
+
+  &__header-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: $primary;
+    font-family: "Poppins", sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    [data-theme="dark"] & {
+      color: $white;
+    }
+  }
+
+  &__close {
+    color: $text-muted !important;
+    flex-shrink: 0;
+
+    &:hover {
+      color: $accent !important;
+    }
+  }
+
+  &__content {
+    padding: 20px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg;
+    min-height: 300px;
+
+    [data-theme="dark"] & {
+      background: #1e1a14;
+    }
+  }
+
+  &__image-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+  &__image {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  &__iframe {
+    width: 100%;
+    height: 70vh;
+    border: none;
+    border-radius: 10px;
+  }
+
+  &__empty,
+  &__unsupported {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: $text-muted;
+    font-family: "Poppins", sans-serif;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 40px 20px;
+  }
+
+  &__download-link {
+    color: $accent;
+    font-weight: 600;
+    font-family: "Poppins", sans-serif;
+    font-size: 0.82rem;
+    text-decoration: underline;
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+}

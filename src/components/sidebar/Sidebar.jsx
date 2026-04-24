@@ -10,22 +10,44 @@ import AccountMenu from "../accountmenu/AccountMenu.jsx";
 import "./Sidebar.scss";
 
 const getFilteredNavItems = (user) => {
-  const permissions = user?.role?.permissions ?? [];
-  const permissionNames = permissions.map((p) => p.name);
+  const permissions = user?.role?.access_permission ?? [];
+
+  const hasPermission = (permissionId) => {
+    const id = permissionId.toLowerCase();
+    return permissions.some(
+      (p) => p.toLowerCase() === id || p.toLowerCase() === id.split(".").pop(),
+    );
+  };
 
   return Object.values(MODULES)
-    .filter((m) => m.permissionId !== "LOGIN")
+    .filter((m) => m.permissionId !== "login")
     .filter((m) => {
-      if (m.permissionId === "DASHBOARD") return true;
-      return permissionNames.includes(m.name);
+      if (m.permissionId === "dashboard") return true;
+      if (m.children) {
+        return Object.values(m.children).some((child) =>
+          hasPermission(child.permissionId),
+        );
+      }
+      return hasPermission(m.permissionId);
     })
     .map((m) => {
       if (!m.children) return m;
-      return m;
+      const filteredChildren = Object.fromEntries(
+        Object.entries(m.children).filter(([, child]) =>
+          hasPermission(child.permissionId),
+        ),
+      );
+      return { ...m, children: filteredChildren };
     });
 };
 
-const NavItem = ({ item, sidebarOpen, onExpandSidebar, level = 0 }) => {
+const NavItem = ({
+  item,
+  sidebarOpen,
+  onExpandSidebar,
+  onCloseSidebar,
+  level = 0,
+}) => {
   const location = useLocation();
   const navigate = useNavigate();
   const hasChildren = item.children && Object.keys(item.children).length > 0;
@@ -45,7 +67,6 @@ const NavItem = ({ item, sidebarOpen, onExpandSidebar, level = 0 }) => {
   const anyChildActive = hasChildren
     ? isChildActive(item.children, item.path)
     : false;
-
   const [open, setOpen] = useState(anyChildActive);
 
   useEffect(() => {
@@ -66,6 +87,7 @@ const NavItem = ({ item, sidebarOpen, onExpandSidebar, level = 0 }) => {
         setOpen(true);
       } else {
         navigate(item.path);
+        onCloseSidebar();
       }
       return;
     }
@@ -74,6 +96,7 @@ const NavItem = ({ item, sidebarOpen, onExpandSidebar, level = 0 }) => {
       setOpen((p) => !p);
     } else {
       navigate(item.path);
+      onCloseSidebar();
     }
   };
 
@@ -111,7 +134,6 @@ const NavItem = ({ item, sidebarOpen, onExpandSidebar, level = 0 }) => {
   );
 
   return (
-    // ✅ wrapper div ensures gap applies between item + its collapse as a unit
     <div className="nav-item-wrap">
       {!sidebarOpen && level === 0 ? (
         <Tooltip title={item.displayName} placement="right">
@@ -133,6 +155,7 @@ const NavItem = ({ item, sidebarOpen, onExpandSidebar, level = 0 }) => {
                 }}
                 sidebarOpen={sidebarOpen}
                 onExpandSidebar={onExpandSidebar}
+                onCloseSidebar={onCloseSidebar}
                 level={level + 1}
               />
             ))}
@@ -148,6 +171,7 @@ const SidebarInner = ({
   isMobile = false,
   onCloseMobile,
   onExpandSidebar,
+  onCloseSidebar,
   navItems,
   user,
   initials,
@@ -155,12 +179,12 @@ const SidebarInner = ({
   <div
     className={`sidebar ${open || isMobile ? "sidebar--open" : "sidebar--closed"}`}>
     <div className="sidebar__brand">
-      <Tooltip title="Aurora Feedmill" placement="right">
+      <Tooltip title="Aurora Store" placement="right">
         <img src={AuroraIcon} alt="Aurora" className="sidebar__logo-icon" />
       </Tooltip>
       {(open || isMobile) && (
         <span className="sidebar__brand-name">
-          Aurora <span className="sidebar__brand-sub">Feedmill</span>
+          Aurora <span className="sidebar__brand-sub">Store</span>
         </span>
       )}
       {isMobile && (
@@ -177,6 +201,7 @@ const SidebarInner = ({
           item={item}
           sidebarOpen={open || isMobile}
           onExpandSidebar={onExpandSidebar}
+          onCloseSidebar={isMobile ? onCloseMobile : onCloseSidebar}
         />
       ))}
     </nav>
@@ -196,6 +221,7 @@ const Sidebar = ({
   mobileSidebarOpen = false,
   onCloseMobile = () => {},
   onToggleSidebar = () => {},
+  onCloseSidebar = () => {},
 }) => {
   const rawUser = JSON.parse(localStorage.getItem("user")) || {};
 
@@ -219,11 +245,14 @@ const Sidebar = ({
   return (
     <>
       <div
-        className={`sidebar-wrapper sidebar-wrapper--desktop ${open ? "sidebar-wrapper--open" : "sidebar-wrapper--closed"}`}>
+        className={`sidebar-wrapper sidebar-wrapper--desktop ${
+          open ? "sidebar-wrapper--open" : "sidebar-wrapper--closed"
+        }`}>
         <SidebarInner
           open={open}
           onCloseMobile={onCloseMobile}
           onExpandSidebar={onToggleSidebar}
+          onCloseSidebar={onCloseSidebar}
           navItems={navItems}
           user={user}
           initials={initials}
@@ -239,6 +268,7 @@ const Sidebar = ({
               isMobile
               onCloseMobile={onCloseMobile}
               onExpandSidebar={onToggleSidebar}
+              onCloseSidebar={onCloseSidebar}
               navItems={navItems}
               user={user}
               initials={initials}

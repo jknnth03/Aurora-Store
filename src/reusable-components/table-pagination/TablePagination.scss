@@ -22,19 +22,15 @@
 
   &__label {
     font-size: 0.75rem;
-    color: $text-muted;
+    color: var(--text-pagination-muted);
     white-space: nowrap;
-
-    [data-theme="dark"] & {
-      color: rgba(255, 255, 255, 0.45);
-    }
   }
 
   &__select {
     font-family: "Poppins", sans-serif;
     font-size: 0.78rem;
     font-weight: 500;
-    color: $text-primary;
+    color: var(--text-pagination);
     background: transparent;
     border: 1.5px solid $border-color;
     border-radius: 6px;
@@ -44,7 +40,6 @@
     transition: border-color 0.15s;
 
     [data-theme="dark"] & {
-      color: rgba(255, 255, 255, 0.85);
       border-color: rgba(255, 255, 255, 0.15);
       background: transparent;
 
@@ -60,12 +55,8 @@
 
   &__info {
     font-size: 0.75rem;
-    color: $text-muted;
+    color: var(--text-pagination-muted);
     white-space: nowrap;
-
-    [data-theme="dark"] & {
-      color: rgba(255, 255, 255, 0.45);
-    }
   }
 
   &__controls {
@@ -83,7 +74,7 @@
     border: 1.5px solid $border-color;
     border-radius: 6px;
     background: transparent;
-    color: $text-primary;
+    color: var(--text-pagination);
     cursor: pointer;
     transition:
       background 0.15s,
@@ -92,7 +83,6 @@
 
     [data-theme="dark"] & {
       border-color: rgba(255, 255, 255, 0.15);
-      color: rgba(255, 255, 255, 0.7);
     }
 
     &:hover:not(:disabled) {

@@ -4,14 +4,14 @@ const extendedApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation({
       query: (body) => ({
-        url: "/api/login",
+        url: "/login",
         method: "POST",
         body,
       }),
     }),
     logout: builder.mutation({
       query: () => ({
-        url: "/api/logout",
+        url: "/logout",
         method: "POST",
       }),
     }),

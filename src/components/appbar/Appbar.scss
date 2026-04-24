@@ -19,7 +19,7 @@
   }
 
   &__toggle {
-    color: $primary-main !important;
+    color: var(--text-appbar-icon) !important;
     transition: background 0.2s !important;
     border-radius: 8px !important;
 
@@ -44,12 +44,12 @@
   &__greeting {
     font-size: 0.82rem;
     font-weight: 400;
-    color: $text-muted;
+    color: var(--text-appbar);
     font-family: "Poppins", sans-serif;
 
     strong {
       font-weight: 600;
-      color: $text-primary;
+      color: var(--text-appbar);
     }
 
     @include sm {
@@ -62,7 +62,7 @@
   }
 
   &__logout {
-    color: $text-muted !important;
+    color: var(--text-appbar-icon) !important;
     transition:
       color 0.2s,
       background 0.2s !important;
@@ -75,7 +75,7 @@
 }
 
 .appbar__notif {
-  color: $primary-main !important;
+  color: var(--text-appbar-icon) !important;
   border-radius: 8px !important;
 
   &:hover {

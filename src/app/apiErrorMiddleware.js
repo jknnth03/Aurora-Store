@@ -8,9 +8,11 @@ export const apiErrorMiddleware = (api) => (next) => (action) => {
     const status = action.payload?.status;
     const errors = action.payload?.data?.errors;
 
+    if (status === 422) return next(action);
+
     const message =
-      errors?.[0]?.title ||
       errors?.[0]?.detail ||
+      errors?.[0]?.title ||
       action.payload?.data?.message ||
       "Something went wrong.";
 

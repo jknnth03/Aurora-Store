@@ -104,11 +104,10 @@
     display: inline-flex;
     align-items: center;
     margin-left: 2px;
-
-    svg {
-      font-size: 0.5rem !important;
-      color: $status-error !important;
-    }
+    color: $status-error;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
   }
 
   &__input-wrap {
@@ -311,6 +310,23 @@
         color: $status-error !important;
       }
     }
+
+    &--disabled {
+      background: rgba($primary-main, 0.02) !important;
+      border-color: $border-color !important;
+      pointer-events: none;
+      opacity: 0.85;
+
+      [data-theme="dark"] & {
+        background: rgba(255, 255, 255, 0.01) !important;
+        border-color: rgba(255, 255, 255, 0.06) !important;
+      }
+
+      .rm__label {
+        color: $text-muted !important;
+        opacity: 0.7;
+      }
+    }
   }
 
   &__ac-box {
@@ -495,6 +511,11 @@
       }
     }
 
+    &--disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
     [data-theme="dark"] & {
       border-color: rgba(255, 255, 255, 0.2);
     }
@@ -507,5 +528,281 @@
     text-align: center;
     padding: 16px;
     margin: 0;
+  }
+
+  &__ac-select-all-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: "Poppins", sans-serif;
+    color: $primary-main;
+
+    [data-theme="dark"] & {
+      color: $secondary-main;
+    }
+  }
+
+  &__ac-option--select-all {
+    border-bottom: 1px solid $border-color;
+    background: rgba($primary-main, 0.03);
+
+    [data-theme="dark"] & {
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.02);
+    }
+  }
+
+  &__ac-divider {
+    height: 1px;
+    background: $border-color;
+
+    [data-theme="dark"] & {
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  &__ac-checkbox--indeterminate {
+    background: $primary-main;
+    border-color: $primary-main;
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      left: 2px;
+      top: 5px;
+      width: 8px;
+      height: 1.5px;
+      background: #fff;
+    }
+
+    [data-theme="dark"] & {
+      background: $secondary-main;
+      border-color: $secondary-main;
+    }
+  }
+
+  &__skeleton-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 4px 0;
+
+    .ut__skeleton {
+      height: 14px;
+      border-radius: 6px;
+      display: block;
+    }
+  }
+
+  &__skeleton-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+
+    .ut__skeleton {
+      height: 32px;
+      border-radius: 8px;
+    }
+  }
+
+  &__tree {
+    padding: 8px 0;
+  }
+
+  &__tree-selectall {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid $border-color;
+    margin-bottom: 4px;
+    transition: background 0.12s;
+
+    &:hover {
+      background: rgba($primary-main, 0.04);
+    }
+
+    [data-theme="dark"] & {
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+    }
+
+    &--disabled {
+      cursor: default;
+      opacity: 0.6;
+      pointer-events: none;
+
+      &:hover {
+        background: transparent;
+      }
+    }
+  }
+
+  &__tree-selectall-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: "Poppins", sans-serif;
+    color: $primary-main;
+
+    [data-theme="dark"] & {
+      color: $secondary-main;
+    }
+  }
+
+  &__tree-module {
+    margin-bottom: 2px;
+
+    &--disabled {
+      cursor: default;
+
+      .rm__tree-parent:hover {
+        background: transparent;
+      }
+
+      .rm__tree-child:hover {
+        background: transparent;
+      }
+    }
+  }
+
+  &__tree-parent {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background 0.12s;
+    border-radius: 6px;
+
+    &:hover {
+      background: rgba($primary-main, 0.04);
+
+      [data-theme="dark"] & {
+        background: rgba(255, 255, 255, 0.03);
+      }
+    }
+  }
+
+  &__tree-parent-icon {
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    color: $primary-main;
+
+    [data-theme="dark"] & {
+      color: $secondary-main;
+    }
+  }
+
+  &__tree-parent-label {
+    flex: 1;
+    font-size: 0.82rem;
+    font-weight: 500;
+    font-family: "Poppins", sans-serif;
+    color: $text-primary;
+    cursor: pointer;
+
+    [data-theme="dark"] & {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    &--disabled {
+      cursor: default;
+      color: $text-muted;
+
+      [data-theme="dark"] & {
+        color: rgba(255, 255, 255, 0.4);
+      }
+    }
+  }
+
+  &__tree-expand {
+    display: flex;
+    align-items: center;
+    color: $text-muted;
+    cursor: pointer;
+    margin-left: auto;
+
+    svg {
+      font-size: 1.2rem !important;
+    }
+
+    &--disabled {
+      cursor: default;
+      pointer-events: none;
+      color: $text-muted;
+      opacity: 0.5;
+    }
+  }
+
+  &__tree-children {
+    padding-left: 36px;
+    padding-bottom: 4px;
+  }
+
+  &__tree-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.12s;
+    font-size: 0.8rem;
+    font-family: "Poppins", sans-serif;
+    color: $text-primary;
+
+    &:hover {
+      background: rgba($primary-main, 0.04);
+
+      [data-theme="dark"] & {
+        background: rgba(255, 255, 255, 0.03);
+      }
+    }
+
+    &--selected {
+      color: $primary-main;
+      font-weight: 500;
+
+      [data-theme="dark"] & {
+        color: $secondary-main;
+      }
+    }
+
+    &--disabled {
+      cursor: default;
+      pointer-events: none;
+
+      span:last-child {
+        color: $text-muted;
+
+        [data-theme="dark"] & {
+          color: rgba(255, 255, 255, 0.4);
+        }
+      }
+
+      &:hover {
+        background: transparent;
+      }
+    }
+
+    [data-theme="dark"] & {
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+
+  &__tree-child-icon {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: $text-muted;
+
+    [data-theme="dark"] & {
+      color: rgba(255, 255, 255, 0.35);
+    }
   }
 }

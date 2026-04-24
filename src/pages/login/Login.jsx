@@ -8,10 +8,9 @@ import PersonIcon from "@mui/icons-material/Person";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import PushPinIcon from "@mui/icons-material/PushPin";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import AuroraIcon from "../../assets/aurora.svg";
-import LoginIllustration from "../../assets/login-illustration.jpg";
+import LoginIllustration from "../../assets/login-illustration.png";
 import "./Login.scss";
 import { setCredentials } from "../../app/authSlice";
 import { loginSchema } from "./loginSchema";
@@ -54,8 +53,8 @@ const Login = () => {
       const response = await login(form).unwrap();
       dispatch(
         setCredentials({
-          user: response.data.user,
-          token: response.data.token,
+          user: response.data,
+          token: response.token,
         }),
       );
       enqueueSnackbar(response.message || "Login successful.", {
@@ -70,12 +69,7 @@ const Login = () => {
   return (
     <div className="login">
       <div className="login__left">
-        <div className="login__left-brand">
-          <h1>
-            Aurora <span className="sub">Feedmill</span>
-          </h1>
-          <p>Illuminates TSQA quality assurance.</p>
-        </div>
+        <div className="login__left-brand"></div>
         <img
           src={LoginIllustration}
           alt="Checklist Illustration"
@@ -88,7 +82,7 @@ const Login = () => {
           <div className="login__brand">
             <img src={AuroraIcon} alt="Aurora" />
             <span>
-              Aurora <span className="sub">Feedmill</span>
+              Aurora <span className="sub">Store</span>
             </span>
           </div>
 
@@ -99,9 +93,7 @@ const Login = () => {
               <div className="login__input-wrap">
                 <label className="login__label">
                   Username
-                  <span className="required">
-                    <PushPinIcon />
-                  </span>
+                  <span className="required">*</span>
                 </label>
                 <PersonIcon className="field-icon" />
                 <input
@@ -122,9 +114,7 @@ const Login = () => {
               <div className="login__input-wrap">
                 <label className="login__label">
                   Password
-                  <span className="required">
-                    <PushPinIcon />
-                  </span>
+                  <span className="required">*</span>
                 </label>
                 <LockOutlinedIcon className="field-icon" />
                 <input

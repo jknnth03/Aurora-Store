@@ -3,16 +3,21 @@ import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
 import GamepadIcon from "@mui/icons-material/Gamepad";
-import SecurityIcon from "@mui/icons-material/Security";
 import ListAltIcon from "@mui/icons-material/ListAlt";
+import StorefrontIcon from "@mui/icons-material/Storefront";
+import SettingsIcon from "@mui/icons-material/Settings";
+import StarRateIcon from "@mui/icons-material/StarRate";
 import ChecklistIcon from "@mui/icons-material/Checklist";
-import ViewListIcon from "@mui/icons-material/ViewList";
-import AssignmentIcon from "@mui/icons-material/Assignment";
-import SanitizerIcon from "@mui/icons-material/Sanitizer";
+import TuneIcon from "@mui/icons-material/Tune";
 import MapIcon from "@mui/icons-material/Map";
-import BugReportIcon from "@mui/icons-material/BugReport";
-import WarningIcon from "@mui/icons-material/Warning";
-import FlutterDashIcon from "@mui/icons-material/FlutterDash";
+import PublicIcon from "@mui/icons-material/Public";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
+import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
+import GroupsIcon from "@mui/icons-material/Groups";
+import PersonIcon from "@mui/icons-material/Person";
+import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
 
 export const iconStyles = {
   main: { fontSize: "22px" },
@@ -31,7 +36,7 @@ export const imageStyles = {
 export const MODULES = {
   LOGIN: {
     name: "Login",
-    permissionId: "LOGIN",
+    permissionId: "login",
     displayName: "Login",
     path: "/login",
     icon: null,
@@ -40,7 +45,7 @@ export const MODULES = {
 
   DASHBOARD: {
     name: "Dashboard",
-    permissionId: "DASHBOARD",
+    permissionId: "dashboard",
     displayName: "Dashboard",
     path: "/",
     icon: <SpaceDashboardIcon sx={iconStyles.main} />,
@@ -49,107 +54,144 @@ export const MODULES = {
 
   USERMANAGEMENT: {
     name: "User Management",
-    permissionId: "USERMANAGEMENT",
+    permissionId: "usermanagement",
     displayName: "User Management",
     path: "/usermanagement",
     icon: <ManageAccountsIcon sx={iconStyles.main} />,
     children: {
       USERS: {
         name: "Users",
-        permissionId: "USERMANAGEMENT.USERS",
+        permissionId: "usermanagement.users",
         displayName: "Users",
         path: "users",
         icon: <PersonAddIcon sx={iconStyles.child} />,
       },
       ROLES: {
         name: "Roles",
-        permissionId: "USERMANAGEMENT.ROLES",
+        permissionId: "usermanagement.roles",
         displayName: "Roles",
         path: "roles",
         icon: <GamepadIcon sx={iconStyles.child} />,
-      },
-      PERMISSIONS: {
-        name: "Permissions",
-        permissionId: "USERMANAGEMENT.PERMISSIONS",
-        displayName: "Permissions",
-        path: "permissions",
-        icon: <SecurityIcon sx={iconStyles.child} />,
       },
     },
   },
 
   MASTERLIST: {
     name: "Masterlist",
-    permissionId: "MASTERLIST",
+    permissionId: "masterlist",
     displayName: "Masterlist",
     path: "/masterlist",
     icon: <ListAltIcon sx={iconStyles.main} />,
     children: {
+      STORES: {
+        name: "Stores",
+        permissionId: "masterlist.stores",
+        displayName: "Stores",
+        path: "stores",
+        icon: <StorefrontIcon sx={iconStyles.child} />,
+      },
+      SCORE_RATING: {
+        name: "Score Rating",
+        permissionId: "masterlist.score_rating",
+        displayName: "Score Rating",
+        path: "score-rating",
+        icon: <StarRateIcon sx={iconStyles.child} />,
+      },
       CHECKLIST: {
         name: "Checklist",
-        permissionId: "MASTERLIST.CHECKLIST",
+        permissionId: "masterlist.checklist",
         displayName: "Checklist",
         path: "checklist",
         icon: <ChecklistIcon sx={iconStyles.child} />,
       },
-      SECTIONS: {
-        name: "Sections",
-        permissionId: "MASTERLIST.SECTIONS",
-        displayName: "Sections",
-        path: "sections",
-        icon: <ViewListIcon sx={iconStyles.child} />,
+      STORE_CHECKLIST: {
+        name: "Store Checklist",
+        permissionId: "masterlist.store_checklist",
+        displayName: "Store Checklist",
+        path: "store-checklist",
+        icon: <AssignmentIcon sx={iconStyles.child} />,
       },
-      INSPECTION_AREAS: {
-        name: "Inspection Areas",
-        permissionId: "MASTERLIST.INSPECTION_AREAS",
-        displayName: "Inspection Areas",
-        path: "inspection-areas",
+      REGION: {
+        name: "Region",
+        permissionId: "masterlist.region",
+        displayName: "Region",
+        path: "region",
+        icon: <PublicIcon sx={iconStyles.child} />,
+      },
+      AREA: {
+        name: "Area",
+        permissionId: "masterlist.area",
+        displayName: "Area",
+        path: "area",
         icon: <MapIcon sx={iconStyles.child} />,
-      },
-      PESTS: {
-        name: "Pest Types",
-        permissionId: "MASTERLIST.PESTS",
-        displayName: "Pest Types",
-        path: "pests",
-        icon: <BugReportIcon sx={iconStyles.child} />,
-      },
-      INFESTATION_LEVELS: {
-        name: "Infestation Levels",
-        permissionId: "MASTERLIST.INFESTATION_LEVELS",
-        displayName: "Infestation Levels",
-        path: "infestation-levels",
-        icon: <WarningIcon sx={iconStyles.child} />,
       },
     },
   },
 
-  CHECKLISTFORM: {
-    name: "Questionnaires",
-    permissionId: "QUESTIONNAIRES",
-    displayName: "Questionnaires",
-    path: "/checklist-form",
-    icon: <AssignmentIcon sx={iconStyles.main} />,
+  OTHERS: {
+    name: "Others",
+    permissionId: "others",
+    displayName: "Others",
+    path: "/others",
+    icon: <FolderSpecialIcon sx={iconStyles.main} />,
     children: {
-      COBS: {
-        name: "COBS",
-        permissionId: "QUESTIONNAIRES.COBS",
-        displayName: "COBS",
-        path: "cobs",
-        icon: <SanitizerIcon sx={iconStyles.child} />,
+      REGION_HEAD: {
+        name: "Region Head",
+        permissionId: "others.region_head",
+        displayName: "Region Head",
+        path: "region-head",
+        icon: <GroupsIcon sx={iconStyles.child} />,
       },
-      PEST_SHEETS: {
-        name: "Pest",
-        permissionId: "QUESTIONNAIRES.PEST_SHEETS",
-        displayName: "Pest",
-        path: "pest-sheets",
-        icon: <BugReportIcon sx={iconStyles.child} />,
+      AREA_HEAD: {
+        name: "Area Head",
+        permissionId: "others.area_head",
+        displayName: "Area Head",
+        path: "area-head",
+        icon: <PersonIcon sx={iconStyles.child} />,
       },
-      BIRDS: {
-        name: "Birds",
-        permissionId: "QUESTIONNAIRES.BIRDS",
-        displayName: "Birds",
-        path: "birds",
-        icon: <FlutterDashIcon sx={iconStyles.child} />,
+    },
+  },
+
+  QA: {
+    name: "QA Checklist",
+    permissionId: "qa.qa_checklist",
+    displayName: "QA Checklist",
+    path: "/qa/checklist",
+    icon: <FactCheckIcon sx={iconStyles.main} />,
+    children: null,
+  },
+
+  QA_MONITORING: {
+    name: "QA Monitoring",
+    permissionId: "qa.qa_monitoring",
+    displayName: "QA Monitoring",
+    path: "/qa/monitoring",
+    icon: <MonitorHeartIcon sx={iconStyles.main} />,
+    children: null,
+  },
+
+  SURVEY_APPROVAL: {
+    name: "Survey Approval",
+    permissionId: "survey_approval.approver_dashboard",
+    displayName: "Survey Approval",
+    path: "/survey-approval/approver-dashboard",
+    icon: <AssignmentTurnedInIcon sx={iconStyles.main} />,
+    children: null,
+  },
+
+  SETTINGS: {
+    name: "Settings",
+    permissionId: "settings",
+    displayName: "Settings",
+    path: "/settings",
+    icon: <SettingsIcon sx={iconStyles.main} />,
+    children: {
+      CHECKLIST_SETTINGS: {
+        name: "Checklist Settings",
+        permissionId: "settings.checklist_settings",
+        displayName: "Checklist Settings",
+        path: "checklist-settings",
+        icon: <TuneIcon sx={iconStyles.child} />,
       },
     },
   },

@@ -1,0 +1,129 @@
+@use "../../styles/colors" as *;
+
+.qa-checklist {
+  &__actions {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  &__actions-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  &__filters {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__filters-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-start;
+
+    @media (max-width: 768px) {
+      flex-wrap: wrap;
+      width: 100%;
+    }
+  }
+
+  &__month-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+
+    @media (max-width: 768px) {
+      width: 100%;
+      justify-content: center;
+      order: -1;
+    }
+  }
+
+  &__month-label {
+    font-family: "Poppins", sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    text-align: center;
+
+    @media (max-width: 900px) {
+      font-size: 0.78rem;
+    }
+  }
+
+  &__month-arrow {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-radius: 50% !important;
+    width: 26px !important;
+    height: 26px !important;
+    flex-shrink: 0;
+    transition: background 0.2s !important;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.35) !important;
+    }
+
+    .MuiSvgIcon-root {
+      font-size: 1rem;
+      color: #fff;
+    }
+  }
+
+  &__actions-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  &__row-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__action-btn {
+    transition:
+      background 0.15s,
+      color 0.15s !important;
+
+    .MuiSvgIcon-root {
+      font-size: 1.1rem;
+    }
+
+    &--start {
+      color: $primary-main !important;
+
+      &:hover {
+        background: rgba($primary-main, 0.1) !important;
+      }
+    }
+
+    &--reports {
+      color: #4e9af1 !important;
+
+      &:hover {
+        background: rgba(78, 154, 241, 0.1) !important;
+      }
+    }
+  }
+
+  &__week-badge {
+    font-family: "Poppins", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: $primary-main;
+  }
+}

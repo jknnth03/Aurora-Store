@@ -1,0 +1,432 @@
+@use "../../styles/colors" as *;
+@use "sass:color";
+
+.sm {
+  &__paper {
+    border-radius: 14px !important;
+    font-family: "Poppins", sans-serif;
+    background: $bg-main !important;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.14) !important;
+    min-height: 520px;
+
+    @media (max-width: 600px) {
+      min-height: unset;
+      margin: 16px !important;
+      max-height: calc(100vh - 32px) !important;
+    }
+
+    [data-theme="dark"] & {
+      background: $bg-main !important;
+    }
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px;
+  }
+
+  &__header--reject {
+    .sm__header-title {
+      color: $status-error;
+    }
+  }
+
+  &__header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: $primary-main;
+    font-family: "Poppins", sans-serif;
+
+    [data-theme="dark"] & {
+      color: $secondary-main;
+    }
+
+    &--reject {
+      color: $status-error !important;
+
+      [data-theme="dark"] & {
+        color: color.adjust($status-error, $lightness: 10%) !important;
+      }
+    }
+  }
+
+  &__header-icon {
+    font-size: 1.1rem !important;
+    color: $primary-main;
+
+    [data-theme="dark"] & {
+      color: $secondary-main;
+    }
+
+    &--reject {
+      color: $status-error !important;
+
+      [data-theme="dark"] & {
+        color: color.adjust($status-error, $lightness: 10%) !important;
+      }
+    }
+  }
+
+  &__close {
+    color: $text-muted !important;
+    transition: color 0.15s !important;
+
+    &:hover {
+      color: $primary-main !important;
+    }
+  }
+
+  &__content {
+    padding: 16px 20px 20px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    max-height: 80vh;
+    border-top: none !important;
+
+    @media (max-width: 600px) {
+      max-height: calc(100vh - 120px);
+    }
+
+    &:not(:hover) {
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
+    &:hover {
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: $primary-main;
+        border-radius: 4px;
+      }
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+    }
+  }
+
+  &__group {
+    margin-bottom: 16px;
+  }
+
+  &__group-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: $text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 0 0 10px;
+    font-family: "Poppins", sans-serif;
+
+    [data-theme="dark"] & {
+      color: rgba(255, 255, 255, 0.35);
+    }
+  }
+
+  &__stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  &__field {
+    position: relative;
+
+    &--full {
+      width: 100%;
+    }
+  }
+
+  &__label {
+    position: absolute;
+    top: -9px;
+    left: 12px;
+    background: $bg-main;
+    padding: 0 4px;
+    font-size: 0.68rem;
+    font-weight: 400;
+    color: $text-muted;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    z-index: 1;
+    transition: color 0.2s;
+    font-family: "Poppins", sans-serif;
+
+    [data-theme="dark"] & {
+      background: $bg-main;
+      color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  &__input-wrap {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid $border-color;
+    border-radius: 8px;
+    background: $bg-main;
+    padding: 0 12px;
+    transition: border-color 0.2s;
+
+    [data-theme="dark"] & {
+      background: $bg-main;
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    &--disabled {
+      background: rgba($primary-main, 0.03) !important;
+      border-color: $border-color !important;
+      cursor: default;
+      pointer-events: none;
+
+      [data-theme="dark"] & {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border-color: rgba(255, 255, 255, 0.06) !important;
+      }
+
+      input,
+      .sm__text-value {
+        color: $text-muted !important;
+        cursor: default;
+
+        [data-theme="dark"] & {
+          color: rgba(255, 255, 255, 0.4) !important;
+        }
+      }
+
+      .sm__label {
+        color: $text-muted !important;
+        opacity: 0.7;
+      }
+    }
+
+    input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 11px 0;
+      font-size: 0.82rem;
+      font-weight: 400;
+      color: $text-primary;
+      outline: none;
+      font-family: "Poppins", sans-serif;
+
+      [data-theme="dark"] & {
+        color: rgba(255, 255, 255, 0.85);
+      }
+    }
+  }
+
+  &__text-value {
+    flex: 1;
+    padding: 11px 0;
+    font-size: 0.82rem;
+    font-weight: 400;
+    color: $text-primary;
+    font-family: "Poppins", sans-serif;
+    word-break: break-word;
+    white-space: pre-wrap;
+    line-height: 1.5;
+
+    [data-theme="dark"] & {
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+
+  &__textarea-wrap {
+    width: 100%;
+  }
+
+  &__textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    font-family: "Poppins", sans-serif;
+    border: 1.5px solid $border-color;
+    border-radius: 8px;
+    background: $bg-main;
+    color: $text-primary;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+    display: block;
+
+    [data-theme="dark"] & {
+      background: $bg-main;
+      border-color: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $primary-main;
+
+      [data-theme="dark"] & {
+        border-color: $secondary-main;
+      }
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+
+      [data-theme="dark"] & {
+        background: rgba(255, 255, 255, 0.02) !important;
+      }
+    }
+
+    &::placeholder {
+      color: $text-muted;
+      opacity: 0.7;
+    }
+  }
+
+  &__confirm-text {
+    margin: 0;
+    font-size: 0.82rem;
+    font-family: "Poppins", sans-serif;
+    color: $text-primary;
+    line-height: 1.6;
+
+    [data-theme="dark"] & {
+      color: rgba(255, 255, 255, 0.75);
+    }
+  }
+
+  &__required {
+    color: $status-error;
+    margin-left: 2px;
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+  }
+
+  &__approve-btn,
+  &__reject-btn,
+  &__cancel-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    font-family: "Poppins", sans-serif;
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      opacity 0.15s,
+      border-color 0.15s;
+
+    svg {
+      font-size: 1rem !important;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  &__approve-btn {
+    border: none;
+    background: $primary-main;
+    color: #fff;
+
+    &:hover:not(:disabled) {
+      opacity: 0.88;
+    }
+
+    [data-theme="dark"] & {
+      background: $secondary-main;
+      color: $bg-main;
+    }
+  }
+
+  &__reject-btn {
+    border: none;
+    background: rgba($status-error, 0.08);
+    color: $status-error;
+
+    &:hover:not(:disabled) {
+      background: rgba($status-error, 0.15);
+    }
+
+    [data-theme="dark"] & {
+      background: rgba($status-error, 0.12);
+      color: color.adjust($status-error, $lightness: 10%);
+
+      &:hover:not(:disabled) {
+        background: rgba($status-error, 0.2);
+      }
+    }
+  }
+
+  &__cancel-btn {
+    background: transparent;
+    border: 1.5px solid $border-color;
+    color: $text-muted;
+
+    &:hover:not(:disabled) {
+      background: rgba($primary-main, 0.04);
+      border-color: $primary-main;
+      color: $primary-main;
+    }
+
+    [data-theme="dark"] & {
+      border-color: rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.5);
+
+      &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: $secondary-main;
+        color: $secondary-main;
+      }
+    }
+  }
+
+  &__skeleton-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 4px 0;
+
+    .ut__skeleton {
+      height: 44px;
+      border-radius: 8px;
+      display: block;
+    }
+  }
+
+  &__skeleton-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 8px;
+
+    .ut__skeleton {
+      height: 36px;
+      border-radius: 8px;
+    }
+  }
+}
+
+.MuiDialogContent-root.sm__content {
+  border-top: none !important;
+}

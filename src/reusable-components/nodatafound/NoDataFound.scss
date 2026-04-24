@@ -10,20 +10,7 @@
   padding-top: 10px;
 
   &__animation {
-    width: 360px;
-    height: 360px;
-    margin-bottom: -200px;
-  }
-
-  &__message {
-    font-family: "Poppins", sans-serif;
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: $primary-main;
-    margin: 0;
-
-    [data-theme="dark"] & {
-      color: $secondary-main;
-    }
+    width: clamp(300px, 55vw, 720px);
+    height: clamp(300px, 55vw, 720px);
   }
 }

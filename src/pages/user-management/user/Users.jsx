@@ -2,11 +2,10 @@ import { useState } from "react";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import AddIcon from "@mui/icons-material/Add";
+import Chip from "@mui/material/Chip";
 import PageContainer from "../../../reusable-components/page-container/PageContainer";
 import UniversalTable from "../../../reusable-components/universal-table/UniversalTable";
 import TablePagination from "../../../reusable-components/table-pagination/TablePagination";
-import UniversalButton from "../../../reusable-components/universalbuttons/UniversalButtons";
 import {
   TableSearchField,
   ArchivedButton,
@@ -19,23 +18,51 @@ import ConfirmDialog from "../../../reusable-components/comfirm-dialog/ConfirmDi
 import RowMenu from "../../../reusable-components/row-menu/RowMenu";
 import UsersModal from "./UsersModal";
 import "./Users.scss";
+import {
+  getChipName,
+  useChipColors,
+  CHIP_SX,
+} from "../../../components/accountmenu/ChipColorPickerDialog";
 
-const COLUMNS = [
-  { key: "employee_id", label: "Employee ID", sortable: true },
+const buildColumns = (isArchived) => [
+  {
+    key: "employee_id",
+    label: "Employee ID",
+    sortable: true,
+    render: (_, row) =>
+      row.id_prefix && row.id_no ? `${row.id_prefix}-${row.id_no}` : "—",
+  },
   {
     key: "full_name",
     label: "Full Name",
     sortable: true,
-    render: (_, row) =>
-      `${row.first_name} ${row.middle_name ? row.middle_name[0] + ". " : ""}${row.last_name}${row.suffix ? " " + row.suffix : ""}`,
+    render: (_, row) => row.full_name ?? "—",
   },
   { key: "username", label: "Username", sortable: true },
-  { key: "position", label: "Position", sortable: false },
   {
     key: "role",
     label: "Role",
     sortable: false,
     render: (val) => val?.name ?? "—",
+  },
+  {
+    key: "status",
+    label: "Status",
+    sortable: false,
+    render: () => {
+      const chipId = isArchived ? "chip-inactive" : "chip-active";
+      return (
+        <Chip
+          label={getChipName(chipId)}
+          size="small"
+          sx={{
+            ...CHIP_SX,
+            backgroundColor: `var(--${chipId}-bg)`,
+            color: `var(--${chipId}-text)`,
+          }}
+        />
+      );
+    },
   },
 ];
 
@@ -55,6 +82,8 @@ const Users = () => {
   const [toArchive, setToArchive] = useState(null);
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
   const [toRestore, setToRestore] = useState(null);
+
+  useChipColors();
 
   const currentStatus = showArchived ? "inactive" : "active";
 
@@ -84,28 +113,6 @@ const Users = () => {
     setPage(1);
   };
 
-  const handleRestoreClick = (row) => {
-    setToRestore(row);
-    setRestoreConfirmOpen(true);
-  };
-  const handleConfirmRestore = async () => {
-    try {
-      await archiveUser(toRestore.id).unwrap();
-      window.__snackbar__?.enqueueSnackbar("User restored successfully.", {
-        variant: "success",
-      });
-      setRestoreConfirmOpen(false);
-      setToRestore(null);
-      resetAfterRestore();
-    } catch (err) {
-      console.error("Restore failed:", err);
-    }
-  };
-
-  const handleAdd = () => {
-    setSelectedId(null);
-    setModalOpen(true);
-  };
   const handleRowClick = (row) => {
     setSelectedId(row.id);
     setModalOpen(true);
@@ -114,6 +121,7 @@ const Users = () => {
     setModalOpen(false);
     setSelectedId(null);
   };
+
   const handleArchiveClick = (row) => {
     setToArchive(row);
     setConfirmOpen(true);
@@ -132,20 +140,30 @@ const Users = () => {
     }
   };
 
+  const handleRestoreClick = (row) => {
+    setToRestore(row);
+    setRestoreConfirmOpen(true);
+  };
+  const handleConfirmRestore = async () => {
+    try {
+      await archiveUser(toRestore.id).unwrap();
+      window.__snackbar__?.enqueueSnackbar("User restored successfully.", {
+        variant: "success",
+      });
+      setRestoreConfirmOpen(false);
+      setToRestore(null);
+      resetAfterRestore();
+    } catch (err) {
+      console.error("Restore failed:", err);
+    }
+  };
+
   return (
     <>
       <PageContainer
         title="Users"
         titleIcon={<PersonAddIcon />}
         isEmpty={!isFetching && (tableData.length === 0 || is404)}
-        titleAction={
-          <UniversalButton
-            label="Add User"
-            tooltip="Click this button to add a new user"
-            icon={<AddIcon />}
-            onClick={handleAdd}
-          />
-        }
         actions={
           <>
             <ArchivedButton
@@ -175,7 +193,7 @@ const Users = () => {
           />
         }>
         <UniversalTable
-          columns={COLUMNS}
+          columns={buildColumns(showArchived)}
           data={tableData}
           isLoading={isFetching}
           sortBy={sortBy}

@@ -3,42 +3,50 @@ import { apiSlice } from "../../../app/apiSlice";
 const rolesApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getRoles: builder.query({
-      query: ({ status = 1, search = "", page = 1, per_page = 10 } = {}) => ({
-        url: "/api/roles",
+      query: ({
+        status = "active",
+        search = "",
+        page = 1,
+        per_page = 10,
+      } = {}) => ({
+        url: "/role",
         params: { status, search, page, per_page },
       }),
       providesTags: ["Roles"],
     }),
-
+    getAllRoles: builder.query({
+      query: () => ({
+        url: "/role",
+        params: { status: "active", per_page: 9999 },
+      }),
+      providesTags: ["Roles"],
+    }),
     getRoleById: builder.query({
       query: (id) => ({
-        url: `/api/roles/${id}`,
+        url: `/role/${id}`,
       }),
       providesTags: (result, error, id) => [{ type: "Roles", id }],
     }),
-
     createRole: builder.mutation({
       query: (body) => ({
-        url: "/api/roles",
+        url: "/role",
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Roles"],
+      invalidatesTags: (result, error) => (error ? [] : ["Roles"]),
     }),
-
     updateRole: builder.mutation({
       query: ({ id, ...body }) => ({
-        url: `/api/roles/${id}`,
+        url: `/role/${id}`,
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["Roles"],
+      invalidatesTags: (result, error) => (error ? [] : ["Roles"]),
     }),
-
     archiveRole: builder.mutation({
       query: (id) => ({
-        url: `/api/roles/${id}`,
-        method: "DELETE",
+        url: `/role/${id}/toggle_archived`,
+        method: "PATCH",
       }),
       invalidatesTags: ["Roles"],
     }),
@@ -47,6 +55,7 @@ const rolesApi = apiSlice.injectEndpoints({
 
 export const {
   useGetRolesQuery,
+  useGetAllRolesQuery,
   useGetRoleByIdQuery,
   useCreateRoleMutation,
   useUpdateRoleMutation,

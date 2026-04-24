@@ -1,0 +1,45 @@
+@use "../../styles/colors" as *;
+
+.survey-approval {
+  &__page-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: "Poppins", sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #fff;
+
+    .survey-approval__page-icon {
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+    }
+  }
+
+  &__table-wrapper {
+    width: 100%;
+
+    .MuiTableCell-root,
+    .MuiTableCell-head,
+    .MuiTableCell-body,
+    .MuiTable-root td,
+    .MuiTable-root th,
+    table td,
+    table th {
+      text-align: left !important;
+    }
+
+    .universal-table__cell,
+    .universal-table__header-cell {
+      text-align: left !important;
+    }
+  }
+}
+
+// Override PageContainer centering if actions bar is centered
+.page-container__actions,
+.page-container__header {
+  justify-content: flex-start !important;
+  text-align: left !important;
+}

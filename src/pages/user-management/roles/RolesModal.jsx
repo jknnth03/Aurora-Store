@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -9,28 +9,52 @@ import CloseIcon from "@mui/icons-material/Close";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import EditIcon from "@mui/icons-material/Edit";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
-import PushPinIcon from "@mui/icons-material/PushPin";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
-import SearchIcon from "@mui/icons-material/Search";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
-import UniversalButton from "../../../reusable-components/universalbuttons/UniversalButtons";
+import UniversalButton, {
+  ConfirmButton,
+  BackButton,
+} from "../../../reusable-components/universalbuttons/UniversalButtons";
+import { MODULES } from "../../../config/modules";
 import {
   useGetRoleByIdQuery,
   useCreateRoleMutation,
   useUpdateRoleMutation,
 } from "../../../features/api/usermanagement/rolesApi";
-import { useGetPermissionsQuery } from "../../../features/api/usermanagement/permissionsApi";
 import "./RolesModal.scss";
 
 const schema = yup.object({
   name: yup.string().required("Role name is required"),
-  permission_id: yup
+  access_permission: yup
     .array()
-    .of(yup.number())
+    .of(yup.string())
     .min(1, "At least one permission is required"),
 });
+
+const SKIP = ["LOGIN"];
+const filteredModules = Object.entries(MODULES).filter(
+  ([key]) => !SKIP.includes(key),
+);
+
+const flattenModules = (modules) => {
+  const result = [];
+  Object.values(modules).forEach((mod) => {
+    if (mod.permissionId && !SKIP.includes(mod.permissionId)) {
+      result.push({ id: mod.permissionId, label: mod.displayName });
+    }
+    if (mod.children) {
+      Object.values(mod.children).forEach((child) => {
+        if (child.permissionId) {
+          result.push({ id: child.permissionId, label: child.displayName });
+        }
+      });
+    }
+  });
+  return result;
+};
+
+const ALL_PERMISSIONS = flattenModules(MODULES);
 
 const SkeletonLoader = () => (
   <div className="rm__skeleton-wrap">
@@ -47,136 +71,186 @@ const PermissionsAutocomplete = ({
   value = [],
   onChange,
   error,
-  displayOptions = [],
+  disabled = false,
 }) => {
-  const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-
-  const { data, isFetching } = useGetPermissionsQuery({
-    status: 1,
-    search,
-    page: 1,
-    per_page: 50,
-  });
-
-  const options = data?.data?.data ?? [];
-
-  const handleSelect = (permission) => {
-    const already = value.includes(permission.id);
-    onChange(
-      already
-        ? value.filter((id) => id !== permission.id)
-        : [...value, permission.id],
-    );
+  const buildInitialExpanded = () => {
+    if (!disabled) return {};
+    const init = {};
+    filteredModules.forEach(([key, mod]) => {
+      if (mod.children) {
+        init[key] = true;
+      }
+    });
+    return init;
   };
 
-  const handleRemove = (id) => onChange(value.filter((v) => v !== id));
-
-  const selectedOptions = options.filter((o) => value.includes(o.id));
+  const [expanded, setExpanded] = useState(buildInitialExpanded);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
-        setOpen(false);
+    if (disabled) {
+      const init = {};
+      filteredModules.forEach(([key, mod]) => {
+        if (mod.children) {
+          init[key] = true;
+        }
+      });
+      setExpanded(init);
+    }
+  }, [disabled]);
+
+  const toggleExpand = (key) => setExpanded((p) => ({ ...p, [key]: !p[key] }));
+
+  const handleParentToggle = (mod) => {
+    if (mod.children) {
+      const childIds = Object.values(mod.children).map((c) => c.permissionId);
+      const allSelected = childIds.every((id) => value.includes(id));
+      if (allSelected) {
+        onChange(
+          value.filter(
+            (id) => !childIds.includes(id) && id !== mod.permissionId,
+          ),
+        );
+      } else {
+        const merged = [...new Set([...value, mod.permissionId, ...childIds])];
+        onChange(merged);
       }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    } else {
+      const already = value.includes(mod.permissionId);
+      onChange(
+        already
+          ? value.filter((id) => id !== mod.permissionId)
+          : [...value, mod.permissionId],
+      );
+    }
+  };
+
+  const handleChildToggle = (childId, parentMod) => {
+    const already = value.includes(childId);
+    let next = already
+      ? value.filter((id) => id !== childId)
+      : [...value, childId];
+    const childIds = Object.values(parentMod.children).map(
+      (c) => c.permissionId,
+    );
+    const allSelected = childIds.every((id) => next.includes(id));
+    if (allSelected && !next.includes(parentMod.permissionId)) {
+      next = [...next, parentMod.permissionId];
+    }
+    if (!allSelected && next.includes(parentMod.permissionId)) {
+      next = next.filter((id) => id !== parentMod.permissionId);
+    }
+    onChange(next);
+  };
+
+  const getParentState = (mod) => {
+    if (!mod.children) return null;
+    const childIds = Object.values(mod.children).map((c) => c.permissionId);
+    const selectedCount = childIds.filter((id) => value.includes(id)).length;
+    if (selectedCount === 0) return "none";
+    if (selectedCount === childIds.length) return "all";
+    return "indeterminate";
+  };
+
+  const allPermIds = filteredModules.flatMap(([, mod]) => {
+    const ids = [mod.permissionId];
+    if (mod.children)
+      ids.push(...Object.values(mod.children).map((c) => c.permissionId));
+    return ids;
+  });
+  const isAllSelected = allPermIds.every((id) => value.includes(id));
+  const isIndeterminate =
+    !isAllSelected && allPermIds.some((id) => value.includes(id));
+
+  const handleSelectAll = () => {
+    if (isAllSelected) onChange([]);
+    else onChange([...new Set(allPermIds)]);
+  };
 
   return (
-    <div className={`rm__ac${error ? " rm__ac--error" : ""}`} ref={wrapRef}>
+    <div
+      className={`rm__ac rm__ac--tree${error ? " rm__ac--error" : ""}${disabled ? " rm__ac--disabled" : ""}`}>
       <label className="rm__label">
-        Permissions
-        <span className="rm__required">
-          <PushPinIcon />
-        </span>
+        Permissions <span className="rm__required">*</span>
       </label>
 
-      <div className="rm__ac-box" onClick={() => setOpen((p) => !p)}>
-        <div className="rm__ac-tags">
-          {value.length === 0 && (
-            <span className="rm__ac-placeholder">Select permissions...</span>
-          )}
-          {selectedOptions.map((p) => (
-            <span key={p.id} className="rm__ac-tag">
-              {p.name}
-              <button
-                type="button"
-                className="rm__ac-tag-remove"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemove(p.id);
-                }}>
-                <CloseRoundedIcon sx={{ fontSize: "0.65rem" }} />
-              </button>
-            </span>
-          ))}
-          {value
-            .filter((id) => !options.find((o) => o.id === id))
-            .map((id) => {
-              const fallback = displayOptions.find((o) => o.id === id);
-              return (
-                <span key={id} className="rm__ac-tag">
-                  {fallback ? fallback.name : `#${id}`}
-                  <button
-                    type="button"
-                    className="rm__ac-tag-remove"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemove(id);
-                    }}>
-                    <CloseRoundedIcon sx={{ fontSize: "0.65rem" }} />
-                  </button>
-                </span>
-              );
-            })}
+      <div className="rm__tree">
+        <div
+          className={`rm__tree-selectall${disabled ? " rm__tree-selectall--disabled" : ""}`}
+          onClick={disabled ? undefined : handleSelectAll}>
+          <span
+            className={`rm__ac-checkbox${
+              isAllSelected
+                ? " rm__ac-checkbox--checked"
+                : isIndeterminate
+                  ? " rm__ac-checkbox--indeterminate"
+                  : ""
+            }${disabled ? " rm__ac-checkbox--disabled" : ""}`}
+          />
+          <span className="rm__tree-selectall-label">Select All</span>
         </div>
-        <span className="rm__ac-arrow">
-          {open ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />}
-        </span>
-      </div>
 
-      {open && (
-        <div className="rm__ac-dropdown">
-          <div className="rm__ac-search">
-            <SearchIcon
-              sx={{ fontSize: "0.9rem", color: "var(--text-muted)" }}
-            />
-            <input
-              autoFocus
-              type="text"
-              placeholder="Search permissions..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="rm__ac-search-input"
-            />
-          </div>
-          <div className="rm__ac-options">
-            {isFetching ? (
-              <p className="rm__ac-empty">Loading...</p>
-            ) : options.length === 0 ? (
-              <p className="rm__ac-empty">No permissions found</p>
-            ) : (
-              options.map((p) => {
-                const selected = value.includes(p.id);
-                return (
-                  <div
-                    key={p.id}
-                    className={`rm__ac-option${selected ? " rm__ac-option--selected" : ""}`}
-                    onClick={() => handleSelect(p)}>
-                    <span
-                      className={`rm__ac-checkbox${selected ? " rm__ac-checkbox--checked" : ""}`}
-                    />
-                    {p.name}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
+        {filteredModules.map(([key, mod]) => {
+          const parentState = getParentState(mod);
+          const hasChildren = !!mod.children;
+          const isExpanded = expanded[key] ?? false;
+
+          return (
+            <div
+              key={key}
+              className={`rm__tree-module${disabled ? " rm__tree-module--disabled" : ""}`}>
+              <div className="rm__tree-parent">
+                <span
+                  className={`rm__ac-checkbox${
+                    parentState === "all" ||
+                    (!hasChildren && value.includes(mod.permissionId))
+                      ? " rm__ac-checkbox--checked"
+                      : parentState === "indeterminate"
+                        ? " rm__ac-checkbox--indeterminate"
+                        : ""
+                  }${disabled ? " rm__ac-checkbox--disabled" : ""}`}
+                  onClick={disabled ? undefined : () => handleParentToggle(mod)}
+                />
+                <span className="rm__tree-parent-icon">{mod.icon}</span>
+                <span
+                  className={`rm__tree-parent-label${disabled ? " rm__tree-parent-label--disabled" : ""}`}
+                  onClick={
+                    disabled ? undefined : () => handleParentToggle(mod)
+                  }>
+                  {mod.displayName}
+                </span>
+                {hasChildren && (
+                  <span
+                    className={`rm__tree-expand${disabled ? " rm__tree-expand--disabled" : ""}`}
+                    onClick={disabled ? undefined : () => toggleExpand(key)}>
+                    {isExpanded ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />}
+                  </span>
+                )}
+              </div>
+
+              {hasChildren && isExpanded && (
+                <div className="rm__tree-children">
+                  {Object.entries(mod.children).map(([cKey, child]) => (
+                    <div
+                      key={cKey}
+                      className={`rm__tree-child${value.includes(child.permissionId) ? " rm__tree-child--selected" : ""}${disabled ? " rm__tree-child--disabled" : ""}`}
+                      onClick={
+                        disabled
+                          ? undefined
+                          : () => handleChildToggle(child.permissionId, mod)
+                      }>
+                      <span
+                        className={`rm__ac-checkbox${value.includes(child.permissionId) ? " rm__ac-checkbox--checked" : ""}${disabled ? " rm__ac-checkbox--disabled" : ""}`}
+                      />
+                      <span className="rm__tree-child-icon">{child.icon}</span>
+                      <span>{child.displayName}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -202,28 +276,26 @@ const RolesModal = ({ open, onClose, selectedId = null }) => {
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
-    defaultValues: { name: "", permission_id: [] },
+    defaultValues: { name: "", access_permission: [] },
   });
 
-  // Set mode + clear on open
   useEffect(() => {
     if (open) {
       setMode(selectedId ? "view" : "add");
       if (!selectedId) {
         setSelectedRow(null);
-        reset({ name: "", permission_id: [] });
+        reset({ name: "", access_permission: [] });
       }
     }
   }, [open, selectedId, reset]);
 
-  // Populate form when API data arrives
   useEffect(() => {
     if (roleData) {
       const data = roleData?.data ?? null;
       setSelectedRow(data);
       reset({
         name: data?.name ?? "",
-        permission_id: data?.permissions?.map((p) => p.id) ?? [],
+        access_permission: data?.access_permission ?? [],
       });
     }
   }, [roleData, reset]);
@@ -243,9 +315,9 @@ const RolesModal = ({ open, onClose, selectedId = null }) => {
       }
       onClose();
     } catch (err) {
-      console.error("Save failed:", err);
+      const detail = err?.data?.errors?.[0]?.detail;
       window.__snackbar__?.enqueueSnackbar(
-        "Something went wrong. Please try again.",
+        detail ?? "Something went wrong. Please try again.",
         { variant: "error" },
       );
     }
@@ -257,12 +329,7 @@ const RolesModal = ({ open, onClose, selectedId = null }) => {
     edit: <EditIcon className="rm__header-icon" />,
   };
 
-  const headerTitle = {
-    add: "Add Role",
-    view: "View Role",
-    edit: "Edit Role",
-  };
-
+  const headerTitle = { add: "Add Role", view: "View Role", edit: "Edit Role" };
   const isView = mode === "view";
 
   return (
@@ -308,24 +375,12 @@ const RolesModal = ({ open, onClose, selectedId = null }) => {
 
             <div className="rm__group">
               <p className="rm__group-label">Permissions</p>
-              <div className="rm__field">
-                <div className="rm__input-wrap rm__input-wrap--disabled rm__input-wrap--tags">
-                  <label className="rm__label">Permissions</label>
-                  <div className="rm__view-tags">
-                    {selectedRow?.permissions?.length > 0 ? (
-                      selectedRow.permissions.map((p) => (
-                        <span
-                          key={p.id}
-                          className="rm__ac-tag rm__ac-tag--readonly">
-                          {p.name}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="rm__ac-placeholder">No permissions</span>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <PermissionsAutocomplete
+                value={selectedRow?.access_permission ?? []}
+                onChange={() => {}}
+                error={false}
+                disabled
+              />
             </div>
 
             <div className="rm__footer">
@@ -333,6 +388,7 @@ const RolesModal = ({ open, onClose, selectedId = null }) => {
                 label="Edit"
                 icon={<EditIcon />}
                 onClick={() => setMode("edit")}
+                modalVariant={true}
               />
             </div>
           </>
@@ -344,10 +400,7 @@ const RolesModal = ({ open, onClose, selectedId = null }) => {
                 <div
                   className={`rm__input-wrap${errors.name ? " rm__input-wrap--error" : ""}`}>
                   <label className="rm__label">
-                    Role Name
-                    <span className="rm__required">
-                      <PushPinIcon />
-                    </span>
+                    Role Name <span className="rm__required">*</span>
                   </label>
                   <input type="text" {...register("name")} autoComplete="off" />
                 </div>
@@ -363,35 +416,27 @@ const RolesModal = ({ open, onClose, selectedId = null }) => {
             <div className="rm__group">
               <p className="rm__group-label">Permissions</p>
               <Controller
-                name="permission_id"
+                name="access_permission"
                 control={control}
                 render={({ field }) => (
                   <PermissionsAutocomplete
                     value={field.value}
                     onChange={field.onChange}
-                    error={!!errors.permission_id}
-                    displayOptions={selectedRow?.permissions ?? []}
+                    error={!!errors.access_permission}
                   />
                 )}
               />
-              {errors.permission_id && (
+              {errors.access_permission && (
                 <p className="rm__error" style={{ marginTop: 6 }}>
                   <ReportProblemIcon />
-                  {errors.permission_id?.message}
+                  {errors.access_permission?.message}
                 </p>
               )}
             </div>
 
             <div className="rm__footer">
-              {selectedId && (
-                <button
-                  type="button"
-                  className="rm__back-btn"
-                  onClick={() => setMode("view")}>
-                  ← Back
-                </button>
-              )}
-              <UniversalButton
+              {selectedId && <BackButton onClick={() => setMode("view")} />}
+              <ConfirmButton
                 label={
                   isLoading
                     ? "Saving..."

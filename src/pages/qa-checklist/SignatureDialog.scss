@@ -1,0 +1,169 @@
+.sig__paper {
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.sig__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #1a1a2e;
+  color: #fff;
+
+  &-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &-icon {
+    font-size: 20px !important;
+    color: #e87722;
+  }
+
+  &-title {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+}
+
+.sig__close {
+  color: #fff !important;
+  padding: 4px !important;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+  }
+}
+
+.sig__content {
+  padding: 20px 24px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.sig__instruction {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  width: 100%;
+}
+
+.sig__canvas-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fafafa;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 32px;
+    left: 20px;
+    right: 20px;
+    height: 1px;
+    background: #e0c9b0;
+    pointer-events: none;
+  }
+}
+
+.sig__canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.sig__canvas-label {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #bbb;
+  white-space: nowrap;
+  pointer-events: none;
+  letter-spacing: 0.5px;
+}
+
+.sig__clear-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: #e87722;
+    color: #e87722;
+  }
+}
+
+.sig__signer-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+  text-align: center;
+}
+
+.sig__footer {
+  padding: 12px 20px !important;
+  gap: 8px;
+  border-top: 1px solid #f0f0f0;
+  justify-content: flex-end !important;
+}
+
+.sig__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+
+  &--cancel {
+    background: #f5f5f5;
+    color: #555;
+
+    &:hover {
+      background: #ebebeb;
+    }
+  }
+
+  &--submit {
+    background: #e87722;
+    color: #fff;
+    min-width: 148px;
+    justify-content: center;
+
+    &:hover:not(:disabled) {
+      background: #d06a1a;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}

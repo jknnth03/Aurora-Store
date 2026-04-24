@@ -20,7 +20,7 @@
     font-family: "Poppins", sans-serif;
     font-size: 0.8rem;
     font-weight: 500;
-    color: $text-muted;
+    color: var(--text-breadcrumb);
     background: transparent;
     transition:
       background 0.15s,
@@ -37,10 +37,10 @@
 
     &--active {
       background: rgba($primary-main, 0.08);
-      color: $primary-main;
+      color: var(--text-breadcrumb-active);
 
       .breadcrumbs__icon svg {
-        color: $primary-main;
+        color: var(--text-breadcrumb-active);
       }
     }
   }
@@ -51,12 +51,12 @@
 
     svg {
       font-size: 15px !important;
-      color: $text-muted;
+      color: var(--text-breadcrumb);
     }
   }
 
   &__sep {
-    color: $text-muted;
+    color: var(--text-breadcrumb);
     font-size: 0.85rem;
     opacity: 0.5;
   }

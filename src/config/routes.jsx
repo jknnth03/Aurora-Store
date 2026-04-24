@@ -5,16 +5,19 @@ import PublicRoute from "./PublicRoute.jsx";
 import Dashboard from "../pages/dashboard/Dashboard.jsx";
 import Users from "../pages/user-management/user/Users.jsx";
 import Roles from "../pages/user-management/roles/Roles.jsx";
-import Permissions from "../pages/user-management/permissions/Permissions.jsx";
-import Checklist from "../pages/masterlist/checklists/Checklists.jsx";
-import Sections from "../pages/masterlist/sections/Sections.jsx";
-import InspectionAreas from "../pages/masterlist/inspection-areas/InspectionAreas.jsx";
-import Pests from "../pages/masterlist/pesttypes/PestTypes.jsx";
-import InfestationLevels from "../pages/masterlist/infestation-levels/InfestationLevel.jsx";
 import Login from "../pages/login/Login.jsx";
-import COBS from "../pages/checklist-form/COBS/COBS.jsx";
-import PestSheet from "../pages/checklist-form/PESTS/PestSheet.jsx";
-import Birds from "../pages/checklist-form/BIRDS/Birds.jsx";
+import Stores from "../pages/masterlist/stores/Stores.jsx";
+import ScoreRating from "../pages/masterlist/score-rating/ScoreRating.jsx";
+import Checklist from "../pages/masterlist/checklist/CheckList.jsx";
+import StoreChecklist from "../pages/masterlist/store-checklist/StoreChecklist.jsx";
+import Region from "../pages/masterlist/region/Region.jsx";
+import Area from "../pages/masterlist/area/Area.jsx";
+import RegionHead from "../pages/others/RegionHead.jsx";
+import AreaHead from "../pages/others/AreadHead.jsx";
+import QAChecklist from "../pages/qa-checklist/QAChecklist.jsx";
+import QAChecklistMonitoring from "../pages/qa-checklist-monitoring/QAChecklistMonitoring.jsx";
+import SurveyApproval from "../pages/survey-approval/SurveyApproval.jsx";
+import CheckListSettings from "../pages/settings/checklist-settings/CheckListSettings.jsx";
 
 export const ROUTES = [
   {
@@ -36,8 +39,6 @@ export const ROUTES = [
         element: <Dashboard />,
         handle: { permission: MODULES.DASHBOARD.permissionId },
       },
-
-      // ─── User Management ───────────────────────────────────────────────────
       {
         id: "USERMANAGEMENT.USERS",
         path: `${MODULES.USERMANAGEMENT.path}/${MODULES.USERMANAGEMENT.children.USERS.path}`,
@@ -55,15 +56,19 @@ export const ROUTES = [
         },
       },
       {
-        id: "USERMANAGEMENT.PERMISSIONS",
-        path: `${MODULES.USERMANAGEMENT.path}/${MODULES.USERMANAGEMENT.children.PERMISSIONS.path}`,
-        element: <Permissions />,
+        id: "MASTERLIST.STORES",
+        path: `${MODULES.MASTERLIST.path}/${MODULES.MASTERLIST.children.STORES.path}`,
+        element: <Stores />,
+        handle: { permission: MODULES.MASTERLIST.children.STORES.permissionId },
+      },
+      {
+        id: "MASTERLIST.SCORE_RATING",
+        path: `${MODULES.MASTERLIST.path}/${MODULES.MASTERLIST.children.SCORE_RATING.path}`,
+        element: <ScoreRating />,
         handle: {
-          permission: MODULES.USERMANAGEMENT.children.PERMISSIONS.permissionId,
+          permission: MODULES.MASTERLIST.children.SCORE_RATING.permissionId,
         },
       },
-
-      // ─── Masterlist ────────────────────────────────────────────────────────
       {
         id: "MASTERLIST.CHECKLIST",
         path: `${MODULES.MASTERLIST.path}/${MODULES.MASTERLIST.children.CHECKLIST.path}`,
@@ -73,62 +78,65 @@ export const ROUTES = [
         },
       },
       {
-        id: "MASTERLIST.SECTIONS",
-        path: `${MODULES.MASTERLIST.path}/${MODULES.MASTERLIST.children.SECTIONS.path}`,
-        element: <Sections />,
+        id: "MASTERLIST.STORE_CHECKLIST",
+        path: `${MODULES.MASTERLIST.path}/${MODULES.MASTERLIST.children.STORE_CHECKLIST.path}`,
+        element: <StoreChecklist />,
         handle: {
-          permission: MODULES.MASTERLIST.children.SECTIONS.permissionId,
+          permission: MODULES.MASTERLIST.children.STORE_CHECKLIST.permissionId,
         },
       },
       {
-        id: "MASTERLIST.INSPECTION_AREAS",
-        path: `${MODULES.MASTERLIST.path}/${MODULES.MASTERLIST.children.INSPECTION_AREAS.path}`,
-        element: <InspectionAreas />,
+        id: "MASTERLIST.REGION",
+        path: `${MODULES.MASTERLIST.path}/${MODULES.MASTERLIST.children.REGION.path}`,
+        element: <Region />,
+        handle: { permission: MODULES.MASTERLIST.children.REGION.permissionId },
+      },
+      {
+        id: "MASTERLIST.AREA",
+        path: `${MODULES.MASTERLIST.path}/${MODULES.MASTERLIST.children.AREA.path}`,
+        element: <Area />,
+        handle: { permission: MODULES.MASTERLIST.children.AREA.permissionId },
+      },
+      {
+        id: "OTHERS.REGION_HEAD",
+        path: `${MODULES.OTHERS.path}/${MODULES.OTHERS.children.REGION_HEAD.path}`,
+        element: <RegionHead />,
         handle: {
-          permission: MODULES.MASTERLIST.children.INSPECTION_AREAS.permissionId,
+          permission: MODULES.OTHERS.children.REGION_HEAD.permissionId,
         },
       },
       {
-        id: "MASTERLIST.PESTS",
-        path: `${MODULES.MASTERLIST.path}/${MODULES.MASTERLIST.children.PESTS.path}`,
-        element: <Pests />,
+        id: "OTHERS.AREA_HEAD",
+        path: `${MODULES.OTHERS.path}/${MODULES.OTHERS.children.AREA_HEAD.path}`,
+        element: <AreaHead />,
         handle: {
-          permission: MODULES.MASTERLIST.children.PESTS.permissionId,
+          permission: MODULES.OTHERS.children.AREA_HEAD.permissionId,
         },
       },
       {
-        id: "MASTERLIST.INFESTATION_LEVELS",
-        path: `${MODULES.MASTERLIST.path}/${MODULES.MASTERLIST.children.INFESTATION_LEVELS.path}`,
-        element: <InfestationLevels />,
-        handle: {
-          permission:
-            MODULES.MASTERLIST.children.INFESTATION_LEVELS.permissionId,
-        },
-      },
-
-      // ─── Questionnaires ────────────────────────────────────────────────────
-      {
-        id: "QUESTIONNAIRES.COBS",
-        path: `${MODULES.CHECKLISTFORM.path}/${MODULES.CHECKLISTFORM.children.COBS.path}`,
-        element: <COBS />,
-        handle: {
-          permission: MODULES.CHECKLISTFORM.children.COBS.permissionId,
-        },
+        id: "QA.QA_CHECKLIST",
+        path: MODULES.QA.path,
+        element: <QAChecklist />,
+        handle: { permission: MODULES.QA.permissionId },
       },
       {
-        id: "QUESTIONNAIRES.PEST_SHEETS",
-        path: `${MODULES.CHECKLISTFORM.path}/${MODULES.CHECKLISTFORM.children.PEST_SHEETS.path}`,
-        element: <PestSheet />,
-        handle: {
-          permission: MODULES.CHECKLISTFORM.children.PEST_SHEETS.permissionId,
-        },
+        id: "QA.QA_MONITORING",
+        path: MODULES.QA_MONITORING.path,
+        element: <QAChecklistMonitoring />,
+        handle: { permission: MODULES.QA_MONITORING.permissionId },
       },
       {
-        id: "QUESTIONNAIRES.BIRDS",
-        path: `${MODULES.CHECKLISTFORM.path}/${MODULES.CHECKLISTFORM.children.BIRDS.path}`,
-        element: <Birds />,
+        id: "SURVEY_APPROVAL.APPROVER_DASHBOARD",
+        path: MODULES.SURVEY_APPROVAL.path,
+        element: <SurveyApproval />,
+        handle: { permission: MODULES.SURVEY_APPROVAL.permissionId },
+      },
+      {
+        id: "SETTINGS.CHECKLIST_SETTINGS",
+        path: `${MODULES.SETTINGS.path}/${MODULES.SETTINGS.children.CHECKLIST_SETTINGS.path}`,
+        element: <CheckListSettings />,
         handle: {
-          permission: MODULES.CHECKLISTFORM.children.BIRDS.permissionId,
+          permission: MODULES.SETTINGS.children.CHECKLIST_SETTINGS.permissionId,
         },
       },
     ],

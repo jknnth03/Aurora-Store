@@ -1,0 +1,124 @@
+@use "../../../styles/colors" as *;
+
+.pd {
+  &__overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pd-fade-in 0.15s ease;
+  }
+
+  &__paper {
+    width: 500px;
+    max-width: calc(100vw - 32px);
+    border-radius: 14px;
+    background: $bg-main;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.14);
+    overflow: hidden;
+    animation: pd-slide-up 0.18s ease;
+
+    [data-theme="dark"] & {
+      background: $bg-main;
+    }
+  }
+
+  &__close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    color: $text-muted;
+    transition:
+      color 0.15s,
+      background 0.15s;
+
+    &:hover {
+      color: $primary-main;
+      background: rgba($primary-main, 0.06);
+
+      [data-theme="dark"] & {
+        color: $secondary-main;
+        background: rgba($secondary-main, 0.1);
+      }
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 4px 0;
+  }
+
+  &__chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    font-family: "Poppins", sans-serif;
+    background: rgba($primary-main, 0.12);
+    color: $primary-main;
+    border: 1.5px solid $primary-main; // ← solid border na, hindi rgba
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition:
+      background 0.15s,
+      border-color 0.15s;
+
+    &:hover {
+      background: rgba($primary-main, 0.22);
+    }
+
+    [data-theme="dark"] & {
+      background: rgba($secondary-main, 0.15);
+      color: $secondary-main;
+      border: 1.5px solid $secondary-main;
+
+      &:hover {
+        background: rgba($secondary-main, 0.25);
+      }
+    }
+  }
+
+  &__empty {
+    font-size: 0.8rem;
+    color: $text-muted;
+    font-family: "Poppins", sans-serif;
+    text-align: center;
+    padding: 24px 0;
+    margin: 0;
+  }
+}
+
+@keyframes pd-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pd-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

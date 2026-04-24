@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router";
 import Sidebar from "../sidebar/Sidebar";
 import Appbar from "../appbar/Appbar";
@@ -7,25 +7,38 @@ import "./Layout.scss";
 
 const Layout = () => {
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const sidebarRef = useRef(null);
 
   useEffect(() => {
     if (location.pathname === "/") {
       setSidebarOpen(false);
-    } else {
-      setSidebarOpen(true);
     }
   }, [location.pathname]);
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
+        setSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <div className="layout">
-      <Sidebar
-        open={sidebarOpen}
-        mobileSidebarOpen={mobileSidebarOpen}
-        onCloseMobile={() => setMobileSidebarOpen(false)}
-        onToggleSidebar={() => setSidebarOpen((p) => !p)}
-      />
+      <div ref={sidebarRef}>
+        <Sidebar
+          open={sidebarOpen}
+          mobileSidebarOpen={mobileSidebarOpen}
+          onCloseMobile={() => setMobileSidebarOpen(false)}
+          onToggleSidebar={() => setSidebarOpen((p) => !p)}
+          onCloseSidebar={() => setSidebarOpen(false)}
+        />
+      </div>
 
       <div className="layout__body">
         <Appbar

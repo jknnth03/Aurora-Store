@@ -3,6 +3,8 @@ import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import AddIcon from "@mui/icons-material/Add";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import IconButton from "@mui/material/IconButton";
 import PageContainer from "../../../reusable-components/page-container/PageContainer";
 import UniversalTable from "../../../reusable-components/universal-table/UniversalTable";
 import TablePagination from "../../../reusable-components/table-pagination/TablePagination";
@@ -18,21 +20,8 @@ import {
 import ConfirmDialog from "../../../reusable-components/comfirm-dialog/ConfirmDialog";
 import RowMenu from "../../../reusable-components/row-menu/RowMenu";
 import RolesModal from "./RolesModal";
+import PermissionsDialog from "./PermissionsDialog";
 import "./Roles.scss";
-
-const COLUMNS = [
-  { key: "id", label: "ID", sortable: true },
-  { key: "name", label: "Name", sortable: true },
-  {
-    key: "permissions",
-    label: "Permissions",
-    sortable: false,
-    render: (val) =>
-      Array.isArray(val) && val.length > 0
-        ? val.map((p) => p.name).join(", ")
-        : "—",
-  },
-];
 
 const Roles = () => {
   const [page, setPage] = useState(1);
@@ -50,6 +39,8 @@ const Roles = () => {
   const [toArchive, setToArchive] = useState(null);
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
   const [toRestore, setToRestore] = useState(null);
+  const [permsOpen, setPermsOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
 
   const currentStatus = showArchived ? "inactive" : "active";
 
@@ -127,6 +118,35 @@ const Roles = () => {
     }
   };
 
+  const handleViewPerms = (e, row) => {
+    e.stopPropagation();
+    setSelectedRole(row);
+    setPermsOpen(true);
+  };
+  const handleClosePerms = () => {
+    setPermsOpen(false);
+    setSelectedRole(null);
+  };
+
+  const COLUMNS = [
+    { key: "id", label: "ID", sortable: true },
+    { key: "name", label: "Name", sortable: true },
+    {
+      key: "access_permission",
+      label: "Permissions",
+      sortable: false,
+      render: (val, row) => (
+        <IconButton
+          size="small"
+          onClick={(e) => handleViewPerms(e, row)}
+          title="View permissions"
+          sx={{ ml: 3 }}>
+          <VisibilityIcon fontSize="small" />
+        </IconButton>
+      ),
+    },
+  ];
+
   return (
     <>
       <PageContainer
@@ -191,6 +211,12 @@ const Roles = () => {
         open={modalOpen}
         onClose={handleClose}
         selectedId={selectedId}
+      />
+
+      <PermissionsDialog
+        open={permsOpen}
+        onClose={handleClosePerms}
+        role={selectedRole}
       />
 
       <ConfirmDialog
