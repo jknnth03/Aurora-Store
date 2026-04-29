@@ -13,6 +13,6 @@ export const apiSlice = createApi({
     },
   }),
   refetchOnMountOrArgChange: true,
-  tagTypes: ["Users", "SurveyApproval", "QaChecklist"],
+  tagTypes: ["Users", "SurveyApproval", "QaChecklist", "Badge"],
   endpoints: () => ({}),
 });

@@ -9,12 +9,12 @@
   width: 100%;
   min-height: 56px;
   height: 56px;
-  padding: 0 16px;
+  padding: 0 20px;
   background-color: $bg-main;
   flex-shrink: 0;
 
   @include sm {
-    padding: 0 8px;
+    padding: 0 12px;
     height: 52px;
   }
 

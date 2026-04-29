@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import AddIcon from "@mui/icons-material/Add";
 import Chip from "@mui/material/Chip";
 import PageContainer from "../../../reusable-components/page-container/PageContainer";
 import UniversalTable from "../../../reusable-components/universal-table/UniversalTable";
@@ -113,6 +114,10 @@ const Users = () => {
     setPage(1);
   };
 
+  const handleAddClick = () => {
+    setSelectedId(null);
+    setModalOpen(true);
+  };
   const handleRowClick = (row) => {
     setSelectedId(row.id);
     setModalOpen(true);
@@ -166,6 +171,10 @@ const Users = () => {
         isEmpty={!isFetching && (tableData.length === 0 || is404)}
         actions={
           <>
+            <button className="users__add-btn" onClick={handleAddClick}>
+              <AddIcon sx={{ fontSize: "1.1rem" }} />
+              Add User
+            </button>
             <ArchivedButton
               active={showArchived}
               onClick={() => {

@@ -20,7 +20,7 @@ import {
   useCreateAreaMutation,
   useUpdateAreaMutation,
 } from "../../../features/api/masterlist/areaApi";
-import { useGetAreaHeadsQuery } from "../../../features/api/others/areaHeadApi";
+import { useGetUsersQuery } from "../../../features/api/usermanagement/userApi";
 import { useGetRegionsQuery } from "../../../features/api/masterlist/regionApi";
 import "./AreaModal.scss";
 
@@ -69,27 +69,21 @@ const AreaModal = ({ open, onClose, selectedId = null }) => {
   );
   const rowData = areaDetail?.data ?? null;
 
-  const { data: areaHeadsData, isFetching: areaHeadsLoading } =
-    useGetAreaHeadsQuery(undefined, { skip: !areaHeadOpen });
+  const { data: areaHeadsData, isFetching: areaHeadsLoading } = useGetUsersQuery(
+    { role_id: 4 },
+    { skip: !areaHeadOpen },
+  );
 
   const { data: regionsData, isFetching: regionsLoading } = useGetRegionsQuery(
     undefined,
     { skip: !regionOpen },
   );
 
-  const areaHeadOptions = (() => {
-    const raw = areaHeadsData?.data?.data;
-    if (!Array.isArray(raw)) return [];
-    const seen = new Set();
-    const heads = [];
-    raw.forEach((area) => {
-      if (area.area_head && !seen.has(area.area_head.id)) {
-        seen.add(area.area_head.id);
-        heads.push(area.area_head);
-      }
-    });
-    return heads;
-  })();
+  const areaHeadOptions = Array.isArray(areaHeadsData?.data?.data)
+    ? areaHeadsData.data.data
+    : Array.isArray(areaHeadsData?.data)
+      ? areaHeadsData.data
+      : [];
 
   const regionOptions = Array.isArray(regionsData?.data?.data)
     ? regionsData.data.data

@@ -2,6 +2,7 @@
 @use "../../styles/colors" as *;
 
 .sidebar-wrapper {
+  clip-path: inset(0 -20px 0 0);
   flex-shrink: 0;
   height: 100vh;
   z-index: 100;
@@ -310,6 +311,7 @@
     color: var(--text-sidebar-icon);
     flex-shrink: 0;
     transition: color 0.15s;
+    position: relative;
 
     svg {
       font-size: 20px;
@@ -320,6 +322,9 @@
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
   &__arrow {
@@ -340,6 +345,20 @@
 
     &-icon {
       font-size: 13px !important;
+    }
+  }
+
+  &__badge-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: $status-error;
+    flex-shrink: 0;
+
+    &--collapsed {
+      position: absolute;
+      top: -3px;
+      right: -4px;
     }
   }
 }

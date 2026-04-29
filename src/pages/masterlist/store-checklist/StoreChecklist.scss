@@ -30,4 +30,40 @@
       }
     }
   }
+
+  &__eye-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: 0 auto;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: $primary-main;
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s;
+
+    &:hover {
+      background: rgba($primary-main, 0.08);
+    }
+
+    [data-theme="dark"] & {
+      color: $secondary-main;
+
+      &:hover {
+        background: rgba($secondary-main, 0.1);
+      }
+    }
+  }
+}
+
+table thead tr th:nth-child(3),
+table tbody tr td:nth-child(3) {
+  text-align: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }

@@ -18,7 +18,8 @@ import {
   useGetUserByIdQuery,
   useCreateUserMutation,
   useUpdateUserMutation,
-  useGetActiveOneChargingQuery,
+  useLazyGetActiveOneChargingQuery,
+  useSyncOneChargingMutation,
 } from "../../../features/api/usermanagement/userApi";
 import { useGetAllRolesQuery } from "../../../features/api/usermanagement/rolesApi";
 import "./UsersModal.scss";
@@ -30,20 +31,10 @@ const FIELD_GROUPS = [
     label: "Personal Information",
     fields: [
       { name: "first_name", label: "First Name", required: true, half: true },
-      {
-        name: "middle_name",
-        label: "Middle Name",
-        required: false,
-        half: true,
-      },
+      { name: "middle_name", label: "Middle Name", required: false, half: true },
       { name: "last_name", label: "Last Name", required: true, half: true },
       { name: "suffix", label: "Suffix", required: false, half: true },
-      {
-        name: "mobile_number",
-        label: "Mobile Number",
-        required: false,
-        half: true,
-      },
+      { name: "mobile_number", label: "Mobile Number", required: false, half: true },
     ],
   },
   {
@@ -65,20 +56,10 @@ const EDIT_FIELD_GROUPS = [
     label: "Personal Information",
     fields: [
       { name: "first_name", label: "First Name", required: true, half: true },
-      {
-        name: "middle_name",
-        label: "Middle Name",
-        required: false,
-        half: true,
-      },
+      { name: "middle_name", label: "Middle Name", required: false, half: true },
       { name: "last_name", label: "Last Name", required: true, half: true },
       { name: "suffix", label: "Suffix", required: false, half: true },
-      {
-        name: "mobile_number",
-        label: "Mobile Number",
-        required: false,
-        half: true,
-      },
+      { name: "mobile_number", label: "Mobile Number", required: false, half: true },
     ],
   },
   {
@@ -103,8 +84,7 @@ const GenderSelect = ({ value, onChange, error, disabled = false }) => {
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target))
-        setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -115,9 +95,7 @@ const GenderSelect = ({ value, onChange, error, disabled = false }) => {
     setOpen(false);
   };
 
-  const displayValue = value
-    ? value.charAt(0).toUpperCase() + value.slice(1)
-    : null;
+  const displayValue = value ? value.charAt(0).toUpperCase() + value.slice(1) : null;
 
   if (disabled) {
     return (
@@ -169,9 +147,7 @@ const RoleAutocomplete = ({ value, onChange, error, displayValue }) => {
   const { data, isFetching } = useGetAllRolesQuery();
   const allOptions = data?.data?.data ?? [];
   const options = search
-    ? allOptions.filter((r) =>
-        r.name.toLowerCase().includes(search.toLowerCase()),
-      )
+    ? allOptions.filter((r) => r.name.toLowerCase().includes(search.toLowerCase()))
     : allOptions;
   const selected = allOptions.find((r) => r.id === value) ?? null;
 
@@ -200,9 +176,7 @@ const RoleAutocomplete = ({ value, onChange, error, displayValue }) => {
       <div className="um__ac-box" onClick={() => setOpen((p) => !p)}>
         {open ? (
           <div className="um__ac-search-wrap">
-            <SearchIcon
-              sx={{ fontSize: "0.9rem", flexShrink: 0, color: "inherit" }}
-            />
+            <SearchIcon sx={{ fontSize: "0.9rem", flexShrink: 0, color: "inherit" }} />
             <input
               autoFocus
               type="text"
@@ -214,10 +188,7 @@ const RoleAutocomplete = ({ value, onChange, error, displayValue }) => {
             />
           </div>
         ) : (
-          <span
-            className={
-              selected || displayValue ? "um__ac-value" : "um__ac-placeholder"
-            }>
+          <span className={selected || displayValue ? "um__ac-value" : "um__ac-placeholder"}>
             {selected ? selected.name : displayValue || "Select role..."}
           </span>
         )}
@@ -252,11 +223,25 @@ const RoleAutocomplete = ({ value, onChange, error, displayValue }) => {
 const OneChargingAutocomplete = ({ value, onChange, error, displayValue }) => {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [synced, setSynced] = useState(false);
   const wrapRef = useRef(null);
 
-  const { data, isFetching } = useGetActiveOneChargingQuery({ search });
+  const [syncOneCharging, { isLoading: isSyncing }] = useSyncOneChargingMutation();
+  const [getActiveOneCharging, { data, isFetching }] = useLazyGetActiveOneChargingQuery();
   const allOptions = data?.data?.data ?? [];
   const selected = allOptions.find((o) => o.id === value) ?? null;
+
+  useEffect(() => {
+    const runSync = async () => {
+      try {
+        await syncOneCharging().unwrap();
+      } catch {
+      } finally {
+        setSynced(true);
+      }
+    };
+    runSync();
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -268,6 +253,17 @@ const OneChargingAutocomplete = ({ value, onChange, error, displayValue }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleOpen = () => {
+    setOpen((p) => {
+      if (!p && synced) getActiveOneCharging({ search });
+      return !p;
+    });
+  };
+
+  useEffect(() => {
+    if (open && synced) getActiveOneCharging({ search });
+  }, [search, synced]);
 
   const handleSelect = (option) => {
     onChange(option.id);
@@ -284,12 +280,10 @@ const OneChargingAutocomplete = ({ value, onChange, error, displayValue }) => {
       <label className="um__label">
         One Charging<span className="um__required">*</span>
       </label>
-      <div className="um__ac-box" onClick={() => setOpen((p) => !p)}>
+      <div className="um__ac-box" onClick={handleOpen}>
         {open ? (
           <div className="um__ac-search-wrap">
-            <SearchIcon
-              sx={{ fontSize: "0.9rem", flexShrink: 0, color: "inherit" }}
-            />
+            <SearchIcon sx={{ fontSize: "0.9rem", flexShrink: 0, color: "inherit" }} />
             <input
               autoFocus
               type="text"
@@ -301,8 +295,7 @@ const OneChargingAutocomplete = ({ value, onChange, error, displayValue }) => {
             />
           </div>
         ) : (
-          <span
-            className={displayLabel ? "um__ac-value" : "um__ac-placeholder"}>
+          <span className={displayLabel ? "um__ac-value" : "um__ac-placeholder"}>
             {displayLabel || "Select one charging..."}
           </span>
         )}
@@ -313,7 +306,7 @@ const OneChargingAutocomplete = ({ value, onChange, error, displayValue }) => {
       {open && (
         <div className="um__ac-dropdown">
           <div className="um__ac-options">
-            {isFetching ? (
+            {isSyncing || isFetching ? (
               <p className="um__ac-empty">Loading...</p>
             ) : allOptions.length === 0 ? (
               <p className="um__ac-empty">No results found</p>
@@ -324,11 +317,7 @@ const OneChargingAutocomplete = ({ value, onChange, error, displayValue }) => {
                   className={`um__ac-option${value === o.id ? " um__ac-option--selected" : ""}`}
                   onClick={() => handleSelect(o)}>
                   <span>{o.name}</span>
-                  <small
-                    style={{
-                      color: "var(--text-muted, #888)",
-                      fontSize: "0.75rem",
-                    }}>
+                  <small style={{ color: "var(--text-muted, #888)", fontSize: "0.75rem" }}>
                     {" - "}
                     {o.department_name}
                   </small>
@@ -368,8 +357,7 @@ const FormField = ({
 
   return (
     <div className="um__field">
-      <div
-        className={`um__input-wrap${hasError ? " um__input-wrap--error" : ""}`}>
+      <div className={`um__input-wrap${hasError ? " um__input-wrap--error" : ""}`}>
         <label className="um__label">
           {label}
           {required && <span className="um__required">*</span>}
@@ -380,10 +368,7 @@ const FormField = ({
           autoComplete={isPassword ? "new-password" : "off"}
         />
         {isPassword && (
-          <button
-            type="button"
-            className="um__toggle-pass"
-            onClick={onTogglePass}>
+          <button type="button" className="um__toggle-pass" onClick={onTogglePass}>
             {showPass ? (
               <RemoveRedEyeIcon fontSize="small" />
             ) : (
@@ -402,14 +387,22 @@ const FormField = ({
   );
 };
 
+const formatMobileNumber = (number) => {
+  if (!number) return "";
+  const cleaned = number.replace(/\s|-/g, "");
+  if (cleaned.startsWith("0")) return "+63" + cleaned.slice(1);
+  if (cleaned.startsWith("63")) return "+" + cleaned;
+  if (cleaned.startsWith("+63")) return cleaned;
+  return cleaned;
+};
+
 const UsersModal = ({ open, onClose, selectedId = null }) => {
   const [mode, setMode] = useState("add");
   const [showPass, setShowPass] = useState(false);
 
-  const { data: userDetail, isFetching: userLoading } = useGetUserByIdQuery(
-    selectedId,
-    { skip: !selectedId || !open },
-  );
+  const { data: userDetail, isFetching: userLoading } = useGetUserByIdQuery(selectedId, {
+    skip: !selectedId || !open,
+  });
   const rowData = userDetail?.data ?? null;
 
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
@@ -484,6 +477,7 @@ const UsersModal = ({ open, onClose, selectedId = null }) => {
       const payload = {
         role_id: form.role_id,
         username: form.username,
+        for_syncing: false,
         personal_info: {
           id_prefix: form.employee_id.split("-")[0],
           id_no: form.employee_id.split("-")[1],
@@ -491,7 +485,7 @@ const UsersModal = ({ open, onClose, selectedId = null }) => {
           middle_name: form.middle_name,
           last_name: form.last_name,
           suffix: form.suffix,
-          mobile_number: form.mobile_number,
+          mobile_number: formatMobileNumber(form.mobile_number),
           gender: form.gender,
           one_charging_id: form.one_charging_id,
         },
@@ -503,10 +497,9 @@ const UsersModal = ({ open, onClose, selectedId = null }) => {
       onClose();
     } catch (err) {
       console.error("Save failed:", err);
-      window.__snackbar__?.enqueueSnackbar(
-        "Something went wrong. Please try again.",
-        { variant: "error" },
-      );
+      window.__snackbar__?.enqueueSnackbar("Something went wrong. Please try again.", {
+        variant: "error",
+      });
     }
   };
 
@@ -517,7 +510,12 @@ const UsersModal = ({ open, onClose, selectedId = null }) => {
         username: form.username,
         role_id: form.role_id,
         personal_info: {
-          mobile_number: form.mobile_number,
+          first_name: form.first_name,
+          middle_name: form.middle_name,
+          last_name: form.last_name,
+          suffix: form.suffix,
+          gender: form.gender,
+          mobile_number: formatMobileNumber(form.mobile_number),
           one_charging_id: form.one_charging_id,
         },
       };
@@ -528,10 +526,9 @@ const UsersModal = ({ open, onClose, selectedId = null }) => {
       onClose();
     } catch (err) {
       console.error("Update failed:", err);
-      window.__snackbar__?.enqueueSnackbar(
-        "Something went wrong. Please try again.",
-        { variant: "error" },
-      );
+      window.__snackbar__?.enqueueSnackbar("Something went wrong. Please try again.", {
+        variant: "error",
+      });
     }
   };
 
@@ -580,10 +577,7 @@ const UsersModal = ({ open, onClose, selectedId = null }) => {
     if (isView) {
       return (
         <div className="um__footer">
-          <button
-            type="button"
-            className="um__edit-footer-btn"
-            onClick={handleEditClick}>
+          <button type="button" className="um__edit-footer-btn" onClick={handleEditClick}>
             <EditIcon sx={{ fontSize: "0.9rem" }} />
             Edit
           </button>
@@ -594,10 +588,7 @@ const UsersModal = ({ open, onClose, selectedId = null }) => {
     return (
       <div className="um__footer">
         {isEdit && (
-          <button
-            type="button"
-            className="um__back-btn"
-            onClick={handleBackToView}>
+          <button type="button" className="um__back-btn" onClick={handleBackToView}>
             Back
           </button>
         )}
@@ -649,29 +640,16 @@ const UsersModal = ({ open, onClose, selectedId = null }) => {
             <div className="um__group">
               <p className="um__group-label">Personal Information</p>
               <div className="um__grid">
-                <ViewField
-                  label="First Name"
-                  value={rowData?.first_name}
-                  half
-                />
-                <ViewField
-                  label="Middle Name"
-                  value={rowData?.middle_name}
-                  half
-                />
+                <ViewField label="First Name" value={rowData?.first_name} half />
+                <ViewField label="Middle Name" value={rowData?.middle_name} half />
                 <ViewField label="Last Name" value={rowData?.last_name} half />
                 <ViewField label="Suffix" value={rowData?.suffix} half />
-                <ViewField
-                  label="Mobile Number"
-                  value={rowData?.mobile_number}
-                  half
-                />
+                <ViewField label="Mobile Number" value={rowData?.mobile_number} half />
                 <ViewField
                   label="Gender"
                   value={
                     rowData?.gender
-                      ? rowData.gender.charAt(0).toUpperCase() +
-                        rowData.gender.slice(1)
+                      ? rowData.gender.charAt(0).toUpperCase() + rowData.gender.slice(1)
                       : null
                   }
                   half
@@ -703,12 +681,7 @@ const UsersModal = ({ open, onClose, selectedId = null }) => {
               <div className="um__field">
                 <div className="um__input-wrap um__input-wrap--disabled">
                   <label className="um__label">Role</label>
-                  <input
-                    type="text"
-                    value={rowData?.role?.name ?? "—"}
-                    disabled
-                    readOnly
-                  />
+                  <input type="text" value={rowData?.role?.name ?? "—"} disabled readOnly />
                 </div>
               </div>
             </div>
@@ -720,9 +693,7 @@ const UsersModal = ({ open, onClose, selectedId = null }) => {
                 <p className="um__group-label">{group.label}</p>
                 <div className="um__grid">
                   {group.fields.map((f) => (
-                    <div
-                      key={f.name}
-                      className={f.half ? "um__col-half" : "um__col-full"}>
+                    <div key={f.name} className={f.half ? "um__col-half" : "um__col-full"}>
                       <FormField
                         name={f.name}
                         label={f.label}

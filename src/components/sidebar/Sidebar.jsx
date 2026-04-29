@@ -7,6 +7,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { MODULES } from "../../config/modules.jsx";
 import AuroraIcon from "../../assets/aurora.svg";
 import AccountMenu from "../accountmenu/AccountMenu.jsx";
+import { useGetBadgeCountQuery } from "../../features/api/login/badgeApi.js";
 import "./Sidebar.scss";
 
 const getFilteredNavItems = (user) => {
@@ -47,6 +48,7 @@ const NavItem = ({
   onExpandSidebar,
   onCloseSidebar,
   level = 0,
+  badgeCount = 0,
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -80,6 +82,10 @@ const NavItem = ({
 
   const paddingLeft = level === 0 ? 14 : 14 + level * 16;
 
+  const isSurveyApproval =
+    item.permissionId === "survey_approval.approver_dashboard";
+  const showDot = isSurveyApproval && badgeCount > 0;
+
   const handleClick = () => {
     if (!sidebarOpen && level === 0) {
       onExpandSidebar();
@@ -109,10 +115,18 @@ const NavItem = ({
       `}
       style={{ paddingLeft }}
       onClick={handleClick}>
-      <span className="nav-item__icon">{item.icon}</span>
+      <span className="nav-item__icon">
+        {item.icon}
+        {!sidebarOpen && showDot && (
+          <span className="nav-item__badge-dot nav-item__badge-dot--collapsed" />
+        )}
+      </span>
       {sidebarOpen && (
         <>
-          <span className="nav-item__label">{item.displayName}</span>
+          <span className="nav-item__label">
+            {item.displayName}
+            {showDot && <span className="nav-item__badge-dot" />}
+          </span>
           {level > 0 && isActive && (
             <span className="nav-item__check">
               <DoneAllIcon className="nav-item__check-icon" />
@@ -157,6 +171,7 @@ const NavItem = ({
                 onExpandSidebar={onExpandSidebar}
                 onCloseSidebar={onCloseSidebar}
                 level={level + 1}
+                badgeCount={badgeCount}
               />
             ))}
           </div>
@@ -175,6 +190,7 @@ const SidebarInner = ({
   navItems,
   user,
   initials,
+  badgeCount,
 }) => (
   <div
     className={`sidebar ${open || isMobile ? "sidebar--open" : "sidebar--closed"}`}>
@@ -202,6 +218,7 @@ const SidebarInner = ({
           sidebarOpen={open || isMobile}
           onExpandSidebar={onExpandSidebar}
           onCloseSidebar={isMobile ? onCloseMobile : onCloseSidebar}
+          badgeCount={badgeCount}
         />
       ))}
     </nav>
@@ -242,6 +259,12 @@ const Sidebar = ({
 
   const navItems = getFilteredNavItems(rawUser);
 
+  const { data: badgeData } = useGetBadgeCountQuery(undefined, {
+    pollingInterval: 10000,
+    refetchOnMountOrArgChange: true,
+  });
+  const badgeCount = badgeData?.data?.badge_count ?? 0;
+
   return (
     <>
       <div
@@ -256,6 +279,7 @@ const Sidebar = ({
           navItems={navItems}
           user={user}
           initials={initials}
+          badgeCount={badgeCount}
         />
       </div>
 
@@ -272,6 +296,7 @@ const Sidebar = ({
               navItems={navItems}
               user={user}
               initials={initials}
+              badgeCount={badgeCount}
             />
           </div>
         </>

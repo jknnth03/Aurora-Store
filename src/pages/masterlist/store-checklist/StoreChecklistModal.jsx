@@ -411,7 +411,6 @@ const StoreChecklistModal = ({ open, onClose, selectedId = null }) => {
                 <ViewField label="Code" value={rowData?.code} />
                 <ViewField label="Store" value={rowData?.store?.name} />
                 <ViewField label="Checklist" value={rowData?.checklist?.name} />
-                <ViewField label="Status" value={rowData?.status} />
               </div>
             </div>
 
@@ -438,7 +437,9 @@ const StoreChecklistModal = ({ open, onClose, selectedId = null }) => {
                       onChange={field.onChange}
                       onSelectOption={(store) => setSelectedStore(store)}
                       error={!!errors.store_id}
-                      displayValue={rowData?.store?.name}
+                      displayValue={
+                        selectedId ? rowData?.store?.name : undefined
+                      }
                     />
                   )}
                 />
@@ -460,7 +461,9 @@ const StoreChecklistModal = ({ open, onClose, selectedId = null }) => {
                         setSelectedChecklist(checklist)
                       }
                       error={!!errors.checklist_id}
-                      displayValue={rowData?.checklist?.name}
+                      displayValue={
+                        selectedId ? rowData?.checklist?.name : undefined
+                      }
                     />
                   )}
                 />

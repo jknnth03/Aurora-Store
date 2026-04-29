@@ -352,7 +352,7 @@ const StartCheckingDialog = ({
 
   const [staffDropdownOpen, setStaffDropdownOpen] = useState(false);
   const { data: usersData, isFetching: isFetchingUsers } = useGetUsersQuery(
-    { status: "active", pagination: "none" },
+    { status: "active", pagination: "none", role_id: 6 },
     { skip: !staffDropdownOpen },
   );
 

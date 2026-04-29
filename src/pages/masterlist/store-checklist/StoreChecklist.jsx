@@ -3,7 +3,9 @@ import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import AddIcon from "@mui/icons-material/Add";
+import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import Chip from "@mui/material/Chip";
+import Tooltip from "@mui/material/Tooltip";
 import PageContainer from "../../../reusable-components/page-container/PageContainer";
 import UniversalTable from "../../../reusable-components/universal-table/UniversalTable";
 import TablePagination from "../../../reusable-components/table-pagination/TablePagination";
@@ -19,6 +21,7 @@ import {
 import ConfirmDialog from "../../../reusable-components/comfirm-dialog/ConfirmDialog";
 import RowMenu from "../../../reusable-components/row-menu/RowMenu";
 import StoreChecklistModal from "./StoreChecklistModal";
+import CheckListModal from "../checklist/CheckListModal";
 import "./StoreChecklist.scss";
 import {
   getChipName,
@@ -26,7 +29,7 @@ import {
   CHIP_SX,
 } from "../../../components/accountmenu/ChipColorPickerDialog";
 
-const buildColumns = (isArchived) => [
+const buildColumns = (isArchived, onViewChecklist) => [
   {
     key: "code",
     label: "Code",
@@ -43,7 +46,20 @@ const buildColumns = (isArchived) => [
     key: "checklist",
     label: "Checklist",
     sortable: false,
-    render: (val) => val?.name ?? "—",
+    headerAlign: "center",
+    align: "center",
+    render: (val) => (
+      <Tooltip title={val?.name ?? "View Checklist"} placement="top">
+        <button
+          className="store-checklist__eye-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewChecklist(val?.id);
+          }}>
+          <RemoveRedEyeIcon sx={{ fontSize: "16px" }} />
+        </button>
+      </Tooltip>
+    ),
   },
   {
     key: "status",
@@ -82,6 +98,8 @@ const StoreChecklist = () => {
   const [toArchive, setToArchive] = useState(null);
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
   const [toRestore, setToRestore] = useState(null);
+  const [checklistModalOpen, setChecklistModalOpen] = useState(false);
+  const [selectedChecklistId, setSelectedChecklistId] = useState(null);
 
   useChipColors();
 
@@ -125,6 +143,11 @@ const StoreChecklist = () => {
   const handleClose = () => {
     setModalOpen(false);
     setSelectedId(null);
+  };
+
+  const handleViewChecklist = (id) => {
+    setSelectedChecklistId(id);
+    setChecklistModalOpen(true);
   };
 
   const handleArchiveClick = (row) => {
@@ -209,7 +232,7 @@ const StoreChecklist = () => {
           />
         }>
         <UniversalTable
-          columns={buildColumns(showArchived)}
+          columns={buildColumns(showArchived, handleViewChecklist)}
           data={tableData}
           isLoading={isFetching}
           sortBy={sortBy}
@@ -230,6 +253,15 @@ const StoreChecklist = () => {
         open={modalOpen}
         onClose={handleClose}
         selectedId={selectedId}
+      />
+
+      <CheckListModal
+        open={checklistModalOpen}
+        onClose={() => {
+          setChecklistModalOpen(false);
+          setSelectedChecklistId(null);
+        }}
+        selectedId={selectedChecklistId}
       />
 
       <ConfirmDialog

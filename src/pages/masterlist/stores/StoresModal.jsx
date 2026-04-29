@@ -1,17 +1,15 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import IconButton from "@mui/material/IconButton";
+import Autocomplete from "@mui/material/Autocomplete";
 import CloseIcon from "@mui/icons-material/Close";
 import StoreIcon from "@mui/icons-material/Store";
 import EditIcon from "@mui/icons-material/Edit";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
-import SearchIcon from "@mui/icons-material/Search";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import UniversalButton, {
   ConfirmButton,
@@ -28,19 +26,35 @@ import "./StoresModal.scss";
 
 const addSchema = yup.object({
   name: yup.string().required("Store name is required"),
-  region_id: yup.string().required("Region is required"),
-  area_id: yup.string().required("Area is required"),
+  region_id: yup
+    .number()
+    .typeError("Region is required")
+    .required("Region is required")
+    .min(1, "Region is required"),
+  area_id: yup
+    .number()
+    .typeError("Area is required")
+    .required("Area is required")
+    .min(1, "Area is required"),
 });
 
 const editSchema = yup.object({
   name: yup.string().required("Store name is required"),
-  region_id: yup.string().required("Region is required"),
-  area_id: yup.string().required("Area is required"),
+  region_id: yup
+    .number()
+    .typeError("Region is required")
+    .required("Region is required")
+    .min(1, "Region is required"),
+  area_id: yup
+    .number()
+    .typeError("Area is required")
+    .required("Area is required")
+    .min(1, "Area is required"),
 });
 
 const SkeletonLoader = () => (
   <div className="sm__skeleton-wrap">
-    {[50, 75, 60, 80, 55].map((w, i) => (
+    {[50, 75, 60].map((w, i) => (
       <span key={i} className="ut__skeleton" style={{ width: `${w}%` }} />
     ))}
     <div className="sm__skeleton-footer">
@@ -48,228 +62,6 @@ const SkeletonLoader = () => (
     </div>
   </div>
 );
-
-const RegionAutocomplete = ({
-  value,
-  onChange,
-  error,
-  disabled = false,
-  displayValue,
-}) => {
-  const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-
-  const { data, isFetching } = useGetRegionsQuery({ status: "active" });
-  const allOptions = data?.data?.data ?? [];
-  const options = search
-    ? allOptions.filter((r) =>
-        r.name.toLowerCase().includes(search.toLowerCase()),
-      )
-    : allOptions;
-  const selected =
-    allOptions.find((r) => String(r.id) === String(value)) ?? null;
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
-        setOpen(false);
-        setSearch("");
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  if (disabled) {
-    return (
-      <div className="sm__field">
-        <div className="sm__input-wrap sm__input-wrap--disabled">
-          <label className="sm__label">Region</label>
-          <input
-            type="text"
-            value={selected?.name ?? displayValue ?? "—"}
-            disabled
-            readOnly
-          />
-        </div>
-      </div>
-    );
-  }
-
-  const handleSelect = (region) => {
-    onChange(String(region.id));
-    setSearch("");
-    setOpen(false);
-  };
-
-  return (
-    <div className={`sm__ac${error ? " sm__ac--error" : ""}`} ref={wrapRef}>
-      <label className="sm__label">
-        Region <span className="sm__required">*</span>
-      </label>
-      <div className="sm__ac-box" onClick={() => setOpen((p) => !p)}>
-        {open ? (
-          <div className="sm__ac-search-wrap">
-            <SearchIcon
-              sx={{ fontSize: "0.9rem", flexShrink: 0, color: "inherit" }}
-            />
-            <input
-              autoFocus
-              type="text"
-              placeholder="Search region..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="sm__ac-input"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        ) : (
-          <span
-            className={
-              selected || displayValue ? "sm__ac-value" : "sm__ac-placeholder"
-            }>
-            {selected ? selected.name : displayValue || "Select region..."}
-          </span>
-        )}
-        <span className="sm__ac-arrow">
-          {open ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />}
-        </span>
-      </div>
-      {open && (
-        <div className="sm__ac-dropdown">
-          <div className="sm__ac-options">
-            {isFetching ? (
-              <p className="sm__ac-empty">Loading...</p>
-            ) : options.length === 0 ? (
-              <p className="sm__ac-empty">No regions found</p>
-            ) : (
-              options.map((r) => (
-                <div
-                  key={r.id}
-                  className={`sm__ac-option${String(value) === String(r.id) ? " sm__ac-option--selected" : ""}`}
-                  onClick={() => handleSelect(r)}>
-                  {r.name}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const AreaAutocomplete = ({
-  value,
-  onChange,
-  error,
-  disabled = false,
-  displayValue,
-}) => {
-  const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-
-  const { data, isFetching } = useGetAreasQuery({ status: "active" });
-  const allOptions = data?.data?.data ?? [];
-  const options = search
-    ? allOptions.filter((a) =>
-        a.name.toLowerCase().includes(search.toLowerCase()),
-      )
-    : allOptions;
-  const selected =
-    allOptions.find((a) => String(a.id) === String(value)) ?? null;
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
-        setOpen(false);
-        setSearch("");
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  if (disabled) {
-    return (
-      <div className="sm__field">
-        <div className="sm__input-wrap sm__input-wrap--disabled">
-          <label className="sm__label">Area</label>
-          <input
-            type="text"
-            value={selected?.name ?? displayValue ?? "—"}
-            disabled
-            readOnly
-          />
-        </div>
-      </div>
-    );
-  }
-
-  const handleSelect = (area) => {
-    onChange(String(area.id));
-    setSearch("");
-    setOpen(false);
-  };
-
-  return (
-    <div className={`sm__ac${error ? " sm__ac--error" : ""}`} ref={wrapRef}>
-      <label className="sm__label">
-        Area <span className="sm__required">*</span>
-      </label>
-      <div className="sm__ac-box" onClick={() => setOpen((p) => !p)}>
-        {open ? (
-          <div className="sm__ac-search-wrap">
-            <SearchIcon
-              sx={{ fontSize: "0.9rem", flexShrink: 0, color: "inherit" }}
-            />
-            <input
-              autoFocus
-              type="text"
-              placeholder="Search area..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="sm__ac-input"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        ) : (
-          <span
-            className={
-              selected || displayValue ? "sm__ac-value" : "sm__ac-placeholder"
-            }>
-            {selected ? selected.name : displayValue || "Select area..."}
-          </span>
-        )}
-        <span className="sm__ac-arrow">
-          {open ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />}
-        </span>
-      </div>
-      {open && (
-        <div className="sm__ac-dropdown">
-          <div className="sm__ac-options">
-            {isFetching ? (
-              <p className="sm__ac-empty">Loading...</p>
-            ) : options.length === 0 ? (
-              <p className="sm__ac-empty">No areas found</p>
-            ) : (
-              options.map((a) => (
-                <div
-                  key={a.id}
-                  className={`sm__ac-option${String(value) === String(a.id) ? " sm__ac-option--selected" : ""}`}
-                  onClick={() => handleSelect(a)}>
-                  {a.name}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 const ViewField = ({ label, value }) => (
   <div className="sm__field">
@@ -282,12 +74,36 @@ const ViewField = ({ label, value }) => (
 
 const StoresModal = ({ open, onClose, selectedId = null }) => {
   const [mode, setMode] = useState("add");
+  const [regionOpen, setRegionOpen] = useState(false);
+  const [areaOpen, setAreaOpen] = useState(false);
 
   const { data: storeDetail, isFetching: storeLoading } = useGetStoreByIdQuery(
     selectedId,
     { skip: !selectedId || !open },
   );
   const rowData = storeDetail?.data ?? null;
+
+  const { data: regionsData, isFetching: regionsLoading } = useGetRegionsQuery(
+    { status: "active" },
+    { skip: !regionOpen },
+  );
+
+  const { data: areasData, isFetching: areasLoading } = useGetAreasQuery(
+    { status: "active" },
+    { skip: !areaOpen },
+  );
+
+  const regionOptions = Array.isArray(regionsData?.data?.data)
+    ? regionsData.data.data
+    : Array.isArray(regionsData?.data)
+      ? regionsData.data
+      : [];
+
+  const areaOptions = Array.isArray(areasData?.data?.data)
+    ? areasData.data.data
+    : Array.isArray(areasData?.data)
+      ? areasData.data
+      : [];
 
   const [createStore, { isLoading: isCreating }] = useCreateStoreMutation();
   const [updateStore, { isLoading: isUpdating }] = useUpdateStoreMutation();
@@ -309,6 +125,8 @@ const StoresModal = ({ open, onClose, selectedId = null }) => {
   useEffect(() => {
     if (open) {
       setMode(selectedId ? "view" : "add");
+      setRegionOpen(false);
+      setAreaOpen(false);
       if (!selectedId) {
         reset({ name: "", region_id: "", area_id: "" });
       }
@@ -319,8 +137,8 @@ const StoresModal = ({ open, onClose, selectedId = null }) => {
     if (rowData && open && selectedId) {
       reset({
         name: rowData.name ?? "",
-        region_id: String(rowData.region?.id ?? ""),
-        area_id: String(rowData.area?.id ?? ""),
+        region_id: rowData.region?.id ?? "",
+        area_id: rowData.area?.id ?? "",
       });
     }
   }, [rowData, open, selectedId, reset]);
@@ -429,43 +247,121 @@ const StoresModal = ({ open, onClose, selectedId = null }) => {
                   )}
                 </div>
 
-                <Controller
-                  name="region_id"
-                  control={control}
-                  render={({ field }) => (
-                    <RegionAutocomplete
-                      value={field.value}
-                      onChange={field.onChange}
-                      error={!!errors.region_id}
-                      displayValue={rowData?.region?.name}
-                    />
-                  )}
-                />
-                {errors.region_id && (
-                  <p className="sm__error" style={{ marginTop: 6 }}>
-                    <ReportProblemIcon />
-                    {errors.region_id?.message}
-                  </p>
-                )}
+                <div className="sm__field">
+                  <Controller
+                    name="region_id"
+                    control={control}
+                    render={({ field }) => {
+                      const mergedRegionOptions = [
+                        ...(rowData?.region
+                          ? regionOptions.some((o) => o.id === rowData.region.id)
+                            ? []
+                            : [rowData.region]
+                          : []),
+                        ...regionOptions,
+                      ];
+                      const selectedRegion =
+                        mergedRegionOptions.find((opt) => opt.id === field.value) ?? null;
 
-                <Controller
-                  name="area_id"
-                  control={control}
-                  render={({ field }) => (
-                    <AreaAutocomplete
-                      value={field.value}
-                      onChange={field.onChange}
-                      error={!!errors.area_id}
-                      displayValue={rowData?.area?.name}
-                    />
+                      return (
+                        <Autocomplete
+                          options={mergedRegionOptions}
+                          loading={regionsLoading}
+                          getOptionLabel={(opt) => opt?.name ?? ""}
+                          isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                          value={selectedRegion}
+                          onChange={(_, selected) =>
+                            field.onChange(selected?.id ?? "")
+                          }
+                          onOpen={() => setRegionOpen(true)}
+                          renderInput={(params) => (
+                            <div
+                              ref={params.InputProps.ref}
+                              className={`sm__input-wrap${errors.region_id ? " sm__input-wrap--error" : ""}`}>
+                              <label className="sm__label">
+                                Region <span className="sm__required">*</span>
+                              </label>
+                              <input
+                                {...params.inputProps}
+                                autoComplete="off"
+                                placeholder={
+                                  regionsLoading ? "Loading..." : "Search..."
+                                }
+                              />
+                            </div>
+                          )}
+                          slotProps={{
+                            paper: { className: "sm__autocomplete-paper" },
+                          }}
+                        />
+                      );
+                    }}
+                  />
+                  {errors.region_id && (
+                    <p className="sm__error">
+                      <ReportProblemIcon />
+                      {errors.region_id?.message}
+                    </p>
                   )}
-                />
-                {errors.area_id && (
-                  <p className="sm__error" style={{ marginTop: 6 }}>
-                    <ReportProblemIcon />
-                    {errors.area_id?.message}
-                  </p>
-                )}
+                </div>
+
+                <div className="sm__field">
+                  <Controller
+                    name="area_id"
+                    control={control}
+                    render={({ field }) => {
+                      const mergedAreaOptions = [
+                        ...(rowData?.area
+                          ? areaOptions.some((o) => o.id === rowData.area.id)
+                            ? []
+                            : [rowData.area]
+                          : []),
+                        ...areaOptions,
+                      ];
+                      const selectedArea =
+                        mergedAreaOptions.find((opt) => opt.id === field.value) ?? null;
+
+                      return (
+                        <Autocomplete
+                          options={mergedAreaOptions}
+                          loading={areasLoading}
+                          getOptionLabel={(opt) => opt?.name ?? ""}
+                          isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                          value={selectedArea}
+                          onChange={(_, selected) =>
+                            field.onChange(selected?.id ?? "")
+                          }
+                          onOpen={() => setAreaOpen(true)}
+                          renderInput={(params) => (
+                            <div
+                              ref={params.InputProps.ref}
+                              className={`sm__input-wrap${errors.area_id ? " sm__input-wrap--error" : ""}`}>
+                              <label className="sm__label">
+                                Area <span className="sm__required">*</span>
+                              </label>
+                              <input
+                                {...params.inputProps}
+                                autoComplete="off"
+                                placeholder={
+                                  areasLoading ? "Loading..." : "Search..."
+                                }
+                              />
+                            </div>
+                          )}
+                          slotProps={{
+                            paper: { className: "sm__autocomplete-paper" },
+                          }}
+                        />
+                      );
+                    }}
+                  />
+                  {errors.area_id && (
+                    <p className="sm__error">
+                      <ReportProblemIcon />
+                      {errors.area_id?.message}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 

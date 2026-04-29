@@ -20,7 +20,7 @@ import {
   useCreateRegionMutation,
   useUpdateRegionMutation,
 } from "../../../features/api/masterlist/regionApi";
-import { useGetRegionHeadsQuery } from "../../../features/api/others/regionHeadApi";
+import { useGetUsersQuery } from "../../../features/api/usermanagement/userApi";
 import "./RegionModal.scss";
 
 const schema = yup.object({
@@ -54,6 +54,7 @@ const ViewField = ({ label, value }) => (
 
 const RegionModal = ({ open, onClose, selectedId = null }) => {
   const [mode, setMode] = useState("add");
+  const [regionHeadOpen, setRegionHeadOpen] = useState(false);
 
   const { data: regionDetail, isFetching: regionLoading } =
     useGetRegionByIdQuery(selectedId, {
@@ -62,27 +63,16 @@ const RegionModal = ({ open, onClose, selectedId = null }) => {
   const rowData = regionDetail?.data ?? null;
 
   const { data: regionHeadsData, isFetching: regionHeadsLoading } =
-    useGetRegionHeadsQuery(undefined, { skip: !open || mode === "view" });
+    useGetUsersQuery(
+      { role_id: 5 },
+      { skip: !regionHeadOpen },
+    );
 
-  const regionHeadOptions = (() => {
-    const raw = regionHeadsData?.data?.data;
-    if (!Array.isArray(raw)) return [];
-    const seen = new Set();
-    const heads = [];
-    raw.forEach((region) => {
-      if (region.region_head && !seen.has(region.region_head.id)) {
-        seen.add(region.region_head.id);
-        heads.push(region.region_head);
-      }
-      (region.areas ?? []).forEach((area) => {
-        if (area.area_head && !seen.has(area.area_head.id)) {
-          seen.add(area.area_head.id);
-          heads.push(area.area_head);
-        }
-      });
-    });
-    return heads;
-  })();
+  const regionHeadOptions = Array.isArray(regionHeadsData?.data?.data)
+    ? regionHeadsData.data.data
+    : Array.isArray(regionHeadsData?.data)
+      ? regionHeadsData.data
+      : [];
 
   const [createRegion, { isLoading: isCreating }] = useCreateRegionMutation();
   const [updateRegion, { isLoading: isUpdating }] = useUpdateRegionMutation();
@@ -102,6 +92,7 @@ const RegionModal = ({ open, onClose, selectedId = null }) => {
   useEffect(() => {
     if (open) {
       setMode(selectedId ? "view" : "add");
+      setRegionHeadOpen(false);
       if (!selectedId) {
         reset({ name: "", region_head_id: "" });
       }
@@ -227,42 +218,58 @@ const RegionModal = ({ open, onClose, selectedId = null }) => {
                   <Controller
                     name="region_head_id"
                     control={control}
-                    render={({ field }) => (
-                      <Autocomplete
-                        options={regionHeadOptions}
-                        loading={regionHeadsLoading}
-                        getOptionLabel={(opt) => opt?.full_name ?? ""}
-                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                        value={
-                          regionHeadOptions.find(
-                            (opt) => opt.id === field.value,
-                          ) ?? null
-                        }
-                        onChange={(_, selected) =>
-                          field.onChange(selected?.id ?? "")
-                        }
-                        renderInput={(params) => (
-                          <div
-                            ref={params.InputProps.ref}
-                            className={`rm__input-wrap${errors.region_head_id ? " rm__input-wrap--error" : ""}`}>
-                            <label className="rm__label">
-                              Region Head{" "}
-                              <span className="rm__required">*</span>
-                            </label>
-                            <input
-                              {...params.inputProps}
-                              autoComplete="off"
-                              placeholder={
-                                regionHeadsLoading ? "Loading..." : "Search..."
-                              }
-                            />
-                          </div>
-                        )}
-                        slotProps={{
-                          paper: { className: "rm__autocomplete-paper" },
-                        }}
-                      />
-                    )}
+                    render={({ field }) => {
+                      const mergedRegionHeadOptions = [
+                        ...(rowData?.region_head
+                          ? regionHeadOptions.some(
+                              (o) => o.id === rowData.region_head.id,
+                            )
+                            ? []
+                            : [rowData.region_head]
+                          : []),
+                        ...regionHeadOptions,
+                      ];
+                      const selectedRegionHead =
+                        mergedRegionHeadOptions.find(
+                          (opt) => opt.id === field.value,
+                        ) ?? null;
+
+                      return (
+                        <Autocomplete
+                          options={mergedRegionHeadOptions}
+                          loading={regionHeadsLoading}
+                          getOptionLabel={(opt) => opt?.full_name ?? ""}
+                          isOptionEqualToValue={(opt, val) =>
+                            opt.id === val?.id
+                          }
+                          value={selectedRegionHead}
+                          onChange={(_, selected) =>
+                            field.onChange(selected?.id ?? "")
+                          }
+                          onOpen={() => setRegionHeadOpen(true)}
+                          renderInput={(params) => (
+                            <div
+                              ref={params.InputProps.ref}
+                              className={`rm__input-wrap${errors.region_head_id ? " rm__input-wrap--error" : ""}`}>
+                              <label className="rm__label">
+                                Region Head{" "}
+                                <span className="rm__required">*</span>
+                              </label>
+                              <input
+                                {...params.inputProps}
+                                autoComplete="off"
+                                placeholder={
+                                  regionHeadsLoading ? "Loading..." : "Search..."
+                                }
+                              />
+                            </div>
+                          )}
+                          slotProps={{
+                            paper: { className: "rm__autocomplete-paper" },
+                          }}
+                        />
+                      );
+                    }}
                   />
                   {errors.region_head_id && (
                     <p className="rm__error">

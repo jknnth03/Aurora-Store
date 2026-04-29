@@ -89,7 +89,8 @@ const qaChecklistApi = apiSlice.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: (result, error) => (error ? [] : ["QaChecklist"]),
+      invalidatesTags: (result, error) =>
+        error ? [] : ["QaChecklist", "Badge"],
     }),
 
     reSurvey: builder.mutation({
@@ -102,7 +103,8 @@ const qaChecklistApi = apiSlice.injectEndpoints({
         });
         return result.error ? { error: result.error } : { data: result.data };
       },
-      invalidatesTags: (result, error) => (error ? [] : ["QaChecklist"]),
+      invalidatesTags: (result, error) =>
+        error ? [] : ["QaChecklist", "Badge"],
     }),
 
     autoSkip: builder.mutation({
@@ -111,7 +113,8 @@ const qaChecklistApi = apiSlice.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: (result, error) => (error ? [] : ["QaChecklist"]),
+      invalidatesTags: (result, error) =>
+        error ? [] : ["QaChecklist", "Badge"],
     }),
 
     downloadAttachments: builder.mutation({
@@ -147,7 +150,8 @@ const qaChecklistApi = apiSlice.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: (result, error) => (error ? [] : ["QaChecklist"]),
+      invalidatesTags: (result, error) =>
+        error ? [] : ["QaChecklist", "Badge"],
     }),
   }),
 });

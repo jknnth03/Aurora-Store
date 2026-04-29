@@ -1,5 +1,8 @@
 import { apiSlice } from "../../../app/apiSlice";
 
+const SYNC_API_KEY = import.meta.env.VITE_ONE_CHARGING_SYNC_KEY;
+  "eyJpdiI6Inh4WkxWMG1MOTN2YXlid3ZyOGdvYUE9PSIsInZhbHVlIjoibGw2WVFuRkVWaTFtNFVpUWVUbm9NTkhYMHFabTVLOEI4bkp4VW5nMWRVVT0iLCJtYWMiOiI2ZGZkN2JkNjU5ZDk0Yjk0M2YxNmVjM2JlYTY0MmQ0NzgyZTBkYmU5NjA2YjliMDY0Nzc1ZGM2OTVjNDU3OTY5IiwidGFnIjoiIn0=";
+
 const userApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getUsers: builder.query({
@@ -58,6 +61,16 @@ const userApi = apiSlice.injectEndpoints({
       }),
       providesTags: ["OneCharging"],
     }),
+    syncOneCharging: builder.mutation({
+      query: () => ({
+        url: "/one_charging/sync",
+        method: "POST",
+        headers: {
+          "api-key": SYNC_API_KEY,
+        },
+      }),
+      invalidatesTags: (result, error) => (error ? [] : ["OneCharging"]),
+    }),
   }),
 });
 
@@ -68,4 +81,6 @@ export const {
   useUpdateUserMutation,
   useArchiveUserMutation,
   useGetActiveOneChargingQuery,
+  useLazyGetActiveOneChargingQuery,
+  useSyncOneChargingMutation,
 } = userApi;

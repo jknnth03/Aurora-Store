@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import MoveDownIcon from "@mui/icons-material/MoveDown";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import MoveUpIcon from "@mui/icons-material/MoveUp";
+import MenuIcon from "@mui/icons-material/Menu";
+import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import Breadcrumbs from "../breadcrumbs/Breadcrumbs.jsx";
 import "./Appbar.scss";
 
@@ -35,9 +35,9 @@ const Appbar = ({
   };
 
   const toggleIcon = open ? (
-    <MoveUpIcon sx={{ transform: "rotate(-90deg)" }} />
+    <KeyboardDoubleArrowLeftIcon />
   ) : (
-    <MoveDownIcon sx={{ transform: "rotate(-90deg)" }} />
+    <MenuIcon />
   );
 
   return (
