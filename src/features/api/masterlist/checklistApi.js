@@ -43,6 +43,12 @@ const checklistApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Checklist"],
     }),
+    getAttachmentView: builder.query({
+      query: (filename) => ({
+        url: "/attachments/view",
+        params: { filename },
+      }),
+    }),
   }),
 });
 
@@ -52,4 +58,5 @@ export const {
   useCreateChecklistMutation,
   useUpdateChecklistMutation,
   useArchiveChecklistMutation,
+  useGetAttachmentViewQuery,
 } = checklistApi;
