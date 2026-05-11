@@ -260,9 +260,10 @@ const Sidebar = ({
   const navItems = getFilteredNavItems(rawUser);
 
   const { data: badgeData } = useGetBadgeCountQuery(undefined, {
-    pollingInterval: 10000,
     refetchOnMountOrArgChange: true,
+    refetchOnFocus: false,
   });
+
   const badgeCount = badgeData?.data?.badge_count ?? 0;
 
   return (
