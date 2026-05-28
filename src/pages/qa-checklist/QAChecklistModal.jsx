@@ -339,7 +339,7 @@ const QAChecklistModal = ({
       ? `${rowData.code} - ${rowData.name}`
       : (rowData?.name ?? "");
 
-  const { data, isFetching } = useGetQaChecklistByIdQuery(
+  const { data, isFetching, refetch } = useGetQaChecklistByIdQuery(
     { id: storeId, month, year, store_checklist_id: storeChecklistId },
     {
       skip: !open || !storeId || !storeChecklistId,
@@ -403,6 +403,27 @@ const QAChecklistModal = ({
     startCheckingEntry?.status?.toLowerCase() === "approved";
 
   const handleCloseSnackbar = () => setSnackbar((p) => ({ ...p, open: false }));
+
+  const handleSignatureComplete = () => {
+    refetch();
+    if (reportEntry) {
+      const freshWeeklyRecord =
+        data?.data?.store_checklist?.[0]?.weekly_record ?? [];
+      const freshEntry = freshWeeklyRecord.find(
+        (r) => r.week === reportEntry.week,
+      );
+      if (freshEntry) {
+        setReportEntry(freshEntry);
+      }
+    }
+  };
+
+  const handleShowReport = (entry) => {
+    const freshWeeklyRecord =
+      data?.data?.store_checklist?.[0]?.weekly_record ?? [];
+    const freshEntry = freshWeeklyRecord.find((r) => r.week === entry.week);
+    setReportEntry(freshEntry ?? entry);
+  };
 
   return (
     <>
@@ -474,7 +495,7 @@ const QAChecklistModal = ({
                             onStartChecking={(e) => setStartCheckingEntry(e)}
                             onForApproval={setApprovalEntry}
                             onShowChecklist={setChecklistEntry}
-                            onShowReport={setReportEntry}
+                            onShowReport={handleShowReport}
                             isPreviousWeekDone={isPreviousWeekDone}
                           />
                         </td>
@@ -538,6 +559,7 @@ const QAChecklistModal = ({
         onClose={() => setReportEntry(null)}
         entry={reportEntry}
         storeName={storeName}
+        onSignatureComplete={handleSignatureComplete}
       />
 
       <Snackbar

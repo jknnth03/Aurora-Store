@@ -15,25 +15,113 @@ import SignatureDialog from "./SignatureDialog";
 import AttachmentViewerDialog from "./AttachmentViewerDialog";
 import ViewSignatureDialog from "./ViewSignatureDialog";
 import "./QAReportDialog.scss";
-import { useAddSignatureMutation } from "../../features/api/qa-checklist/qaChecklistApi";
+import {
+  useAddSignatureMutation,
+  useViewSignatureQuery,
+} from "../../features/api/qa-checklist/qaChecklistApi";
 
 const BASE_URL = (import.meta.env.VITE_AURORA_ENDPOINT || "").replace(
-  /\/api\/?$/,
+  /\/?$/,
   "",
 );
+
+const getToken = () =>
+  localStorage.getItem("token") ||
+  localStorage.getItem("access_token") ||
+  sessionStorage.getItem("token") ||
+  sessionStorage.getItem("access_token") ||
+  null;
 
 const isRefusedPath = (path) =>
   path === "true" ||
   path === true ||
   (typeof path === "string" && path.toLowerCase() === "refused to sign");
 
-const buildSignatureUrl = (attachmentPath) => {
-  if (!attachmentPath) return null;
-  if (isRefusedPath(attachmentPath)) return null;
-  return `${BASE_URL}/storage/${attachmentPath}`;
+const AttachmentThumbnail = ({ att, onClick }) => {
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+
+  const filename = att?.url ? att.url.split("/").pop() : null;
+  const apiUrl = filename
+    ? `${BASE_URL}/attachments/view?filename=${encodeURIComponent(filename)}`
+    : null;
+
+  const isImage = filename?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+
+  useEffect(() => {
+    if (!apiUrl) {
+      setIsLoading(false);
+      return;
+    }
+
+    let objectUrl = null;
+
+    const fetchThumb = async () => {
+      setIsLoading(true);
+      setIsError(false);
+      try {
+        const token = getToken();
+        const headers = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const response = await fetch(apiUrl, { headers });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const blob = await response.blob();
+        objectUrl = URL.createObjectURL(blob);
+        setBlobUrl(objectUrl);
+      } catch {
+        setIsError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchThumb();
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [apiUrl]);
+
+  return (
+    <div
+      className="qar__thumb"
+      onClick={() => onClick(att)}
+      title={att?.name ?? filename ?? "Attachment"}>
+      {isLoading ? (
+        <div className="qar__thumb-loading">
+          <CircularProgress size={18} sx={{ color: "#e87722" }} />
+        </div>
+      ) : isError || !blobUrl ? (
+        <div className="qar__thumb-error">
+          <span className="qar__thumb-filename">
+            {att?.name ?? filename ?? "File"}
+          </span>
+        </div>
+      ) : isImage ? (
+        <img
+          src={blobUrl}
+          alt={att?.name ?? filename}
+          className="qar__thumb-img"
+        />
+      ) : (
+        <div className="qar__thumb-file">
+          <span className="qar__thumb-filename">
+            {att?.name ?? filename ?? "File"}
+          </span>
+        </div>
+      )}
+    </div>
+  );
 };
 
-const QAReportDialog = ({ open, onClose, entry, storeName }) => {
+const QAReportDialog = ({
+  open,
+  onClose,
+  entry,
+  storeName,
+  onSignatureComplete,
+}) => {
   const [downloadType, setDownloadType] = useState("PDF");
   const [isDownloading, setIsDownloading] = useState(false);
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
@@ -42,7 +130,6 @@ const QAReportDialog = ({ open, onClose, entry, storeName }) => {
   const [viewSignatureOpen, setViewSignatureOpen] = useState(false);
   const [isRefused, setIsRefused] = useState(false);
   const [isRefusing, setIsRefusing] = useState(false);
-  const [localAttachmentPath, setLocalAttachmentPath] = useState(null);
   const [isDialogLoading, setIsDialogLoading] = useState(false);
 
   const [addSignature] = useAddSignatureMutation();
@@ -50,14 +137,21 @@ const QAReportDialog = ({ open, onClose, entry, storeName }) => {
   const printableRef = useRef(null);
   const currentEntryId = entry?.id;
 
+  const existingPath = entry?.attachment_path ?? null;
+  const hasAttachmentPath = !!existingPath && !isRefusedPath(existingPath);
+
+  const { data: signatureData, refetch: refetchSignature } =
+    useViewSignatureQuery(currentEntryId, {
+      skip: !currentEntryId || !open || !hasAttachmentPath,
+    });
+
+  const signatureUrl = signatureData?.signature_url ?? null;
+
   useEffect(() => {
     if (open && currentEntryId) {
-      const existingPath = entry?.attachment_path ?? null;
       setIsRefused(isRefusedPath(existingPath));
-      setLocalAttachmentPath(null);
       setIsDownloading(false);
       setIsDialogLoading(true);
-
       const timer = setTimeout(() => setIsDialogLoading(false), 3000);
       return () => clearTimeout(timer);
     }
@@ -72,12 +166,6 @@ const QAReportDialog = ({ open, onClose, entry, storeName }) => {
   const startTime = entry?.start_time;
   const endTime = entry?.end_time;
 
-  const activeAttachmentPath =
-    localAttachmentPath ?? entry?.attachment_path ?? null;
-
-  const signatureUrl = isRefused
-    ? null
-    : buildSignatureUrl(activeAttachmentPath);
   const isSigned = !isRefused && !!signatureUrl;
   const canExport = isSigned || isRefused;
   const hasData = !!reportData;
@@ -166,12 +254,13 @@ const QAReportDialog = ({ open, onClose, entry, storeName }) => {
     setViewerOpen(true);
   };
 
-  const handleSignatureSaved = (newAttachmentPath) => {
-    if (newAttachmentPath) setLocalAttachmentPath(newAttachmentPath);
+  const handleSignatureSaved = () => {
+    refetchSignature();
+    onSignatureComplete?.();
   };
 
   const handleRefuseToSign = async () => {
-    if (!currentEntryId) return;
+    if (!currentEntryId || isRefused || isSigned) return;
     setIsRefusing(true);
     try {
       const formData = new FormData();
@@ -179,6 +268,7 @@ const QAReportDialog = ({ open, onClose, entry, storeName }) => {
       formData.append("signature", "true");
       await addSignature({ entryId: currentEntryId, formData }).unwrap();
       setIsRefused(true);
+      onSignatureComplete?.();
     } catch (err) {
       console.error("Refuse to sign failed:", err);
     } finally {
@@ -186,7 +276,7 @@ const QAReportDialog = ({ open, onClose, entry, storeName }) => {
     }
   };
 
-  const buildPrintHTML = (sigUrl = null) => {
+  const buildPrintHTML = (sigDataUrl = null) => {
     const sectionsHTML = (snapshot?.sections ?? [])
       .map((sec) => {
         const ep = sec.grade?.earned_points ?? 0;
@@ -219,8 +309,8 @@ const QAReportDialog = ({ open, onClose, entry, storeName }) => {
               return `<p class="section-label">• ${sec.title}</p>${items}`;
             })
             .join("");
-    const sigImgHTML = sigUrl
-      ? `<img src="${sigUrl}" alt="signature" style="max-height:48px;max-width:160px;display:block;margin:0 auto 4px;" crossorigin="anonymous" />`
+    const sigImgHTML = sigDataUrl
+      ? `<img src="${sigDataUrl}" alt="signature" style="max-height:48px;max-width:160px;display:block;margin:0 auto 4px;" />`
       : isRefused
         ? `<p style="font-size:11px;color:#e05252;font-style:italic;margin-bottom:4px;">Refused to sign</p>`
         : `<div style="height:48px;"></div>`;
@@ -635,22 +725,13 @@ const QAReportDialog = ({ open, onClose, entry, storeName }) => {
                             <span>No Photo Attachments</span>
                           </div>
                         ) : (
-                          <div className="qar__attachments-list">
+                          <div className="qar__thumb-grid">
                             {attachments.map((att, i) => (
-                              <div key={i} className="qar__attachment-item">
-                                <p className="qar__attachment-label">
-                                  File name:
-                                </p>
-                                <span className="qar__attachment-link">
-                                  {att.name}
-                                </span>
-                                <button
-                                  className="qar__attachment-view-btn"
-                                  onClick={() => handleViewAttachment(att)}>
-                                  <VisibilityIcon sx={{ fontSize: 14 }} />
-                                  <span>View</span>
-                                </button>
-                              </div>
+                              <AttachmentThumbnail
+                                key={i}
+                                att={att}
+                                onClick={handleViewAttachment}
+                              />
                             ))}
                           </div>
                         )}

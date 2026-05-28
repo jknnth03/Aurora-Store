@@ -15,7 +15,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import AttachmentIcon from "@mui/icons-material/Attachment";
+import AttachmentViewerDialog from "./AttachmentViewerDialog";
 import {
   useGetQaChecklistByIdQuery,
   useAnswerChecklistMutation,
@@ -52,48 +52,6 @@ const SkeletonBlock = () => (
   </div>
 );
 
-const AttachmentPreviewDialog = ({ open, onClose, url, name }) => {
-  const isImage = /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(name ?? "");
-  const isPdf = /\.pdf$/i.test(name ?? "");
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{ className: "scd__preview-paper" }}>
-      <div className="scd__preview-header">
-        <div className="scd__preview-title">
-          <AttachmentIcon sx={{ fontSize: "1rem" }} />
-          <span>{name || "Attachment"}</span>
-        </div>
-        <IconButton size="small" className="scd__close" onClick={onClose}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </div>
-      <DialogContent className="scd__preview-content">
-        {isImage ? (
-          <img src={url} alt={name} className="scd__preview-img" />
-        ) : isPdf ? (
-          <iframe src={url} title={name} className="scd__preview-iframe" />
-        ) : (
-          <div className="scd__preview-fallback">
-            <AttachmentIcon sx={{ fontSize: "2.5rem", opacity: 0.4 }} />
-            <p>Preview not available for this file type.</p>
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="scd__preview-link">
-              Open file
-            </a>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-};
-
 const AttachmentCell = ({ value, onChange, disabled, viewUrl, viewName }) => {
   const fileRef = useRef(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -125,11 +83,10 @@ const AttachmentCell = ({ value, onChange, disabled, viewUrl, viewName }) => {
               </Tooltip>
             </div>
           </div>
-          <AttachmentPreviewDialog
+          <AttachmentViewerDialog
             open={previewOpen}
             onClose={() => setPreviewOpen(false)}
-            url={viewUrl}
-            name={viewName}
+            attachment={{ url: viewUrl, name: viewName }}
           />
         </>
       );
@@ -396,12 +353,14 @@ const StartCheckingDialog = ({
       snapshot?.sections?.forEach((section) => {
         section?.questions?.forEach((q) => {
           if (q.response) {
+            const att = q.response.attachment ?? null;
             rebuiltAnswers[q.id] = {
               compliance: q.response.answer_text ?? q.response.answer ?? "",
               remarks: q.response.remarks ?? "",
               attachment: null,
-              attachmentUrl: q.response.attachment?.file_url ?? null,
-              attachmentName: q.response.attachment?.original_name ?? null,
+              attachmentUrl: att?.file_url ?? att?.url ?? att?.path ?? null,
+              attachmentName:
+                att?.original_name ?? att?.file_name ?? att?.name ?? null,
             };
           }
         });
