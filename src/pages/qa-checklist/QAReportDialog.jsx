@@ -131,6 +131,7 @@ const QAReportDialog = ({
   const [isRefused, setIsRefused] = useState(false);
   const [isRefusing, setIsRefusing] = useState(false);
   const [isDialogLoading, setIsDialogLoading] = useState(false);
+  const [forceShowSig, setForceShowSig] = useState(false);
 
   const [addSignature] = useAddSignatureMutation();
 
@@ -142,7 +143,7 @@ const QAReportDialog = ({
 
   const { data: signatureData, refetch: refetchSignature } =
     useViewSignatureQuery(currentEntryId, {
-      skip: !currentEntryId || !open || !hasAttachmentPath,
+      skip: !currentEntryId || !open || (!hasAttachmentPath && !forceShowSig),
     });
 
   const signatureUrl = signatureData?.signature_url ?? null;
@@ -151,6 +152,7 @@ const QAReportDialog = ({
     if (open && currentEntryId) {
       setIsRefused(isRefusedPath(existingPath));
       setIsDownloading(false);
+      setForceShowSig(false);
       setIsDialogLoading(true);
       const timer = setTimeout(() => setIsDialogLoading(false), 3000);
       return () => clearTimeout(timer);
@@ -255,6 +257,7 @@ const QAReportDialog = ({
   };
 
   const handleSignatureSaved = () => {
+    setForceShowSig(true);
     refetchSignature();
     onSignatureComplete?.();
   };
@@ -472,7 +475,6 @@ const QAReportDialog = ({
           sx={{ mx: "auto", display: "block" }}
         />
       </div>
-
       <div className="qar__skeleton-main">
         <Skeleton
           variant="rectangular"
