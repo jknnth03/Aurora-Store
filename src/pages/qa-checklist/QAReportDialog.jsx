@@ -4,6 +4,8 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
 import CloseIcon from "@mui/icons-material/Close";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -132,6 +134,7 @@ const QAReportDialog = ({
   const [isRefusing, setIsRefusing] = useState(false);
   const [isDialogLoading, setIsDialogLoading] = useState(false);
   const [forceShowSig, setForceShowSig] = useState(false);
+  const [snackOpen, setSnackOpen] = useState(false);
 
   const [addSignature] = useAddSignatureMutation();
 
@@ -153,6 +156,7 @@ const QAReportDialog = ({
       setIsRefused(isRefusedPath(existingPath));
       setIsDownloading(false);
       setForceShowSig(false);
+      setSnackOpen(false);
       setIsDialogLoading(true);
       const timer = setTimeout(() => setIsDialogLoading(false), 3000);
       return () => clearTimeout(timer);
@@ -257,8 +261,10 @@ const QAReportDialog = ({
   };
 
   const handleSignatureSaved = () => {
+    setSignatureDialogOpen(false);
     setForceShowSig(true);
     refetchSignature();
+    setSnackOpen(true);
     onSignatureComplete?.();
   };
 
@@ -832,6 +838,19 @@ const QAReportDialog = ({
         signatureUrl={signatureUrl}
         signerName={meta?.store_duties?.[0]?.full_name ?? storeName ?? "—"}
       />
+      <Snackbar
+        open={snackOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+        <Alert
+          onClose={() => setSnackOpen(false)}
+          severity="success"
+          variant="filled"
+          sx={{ width: "100%" }}>
+          Signature added successfully!
+        </Alert>
+      </Snackbar>
     </>
   );
 };

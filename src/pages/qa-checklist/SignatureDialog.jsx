@@ -21,7 +21,6 @@ const SignatureDialog = ({
 }) => {
   const sigCanvas = useRef(null);
   const [isEmpty, setIsEmpty] = useState(true);
-  const [success, setSuccess] = useState(false);
   const [addSignature, { isLoading }] = useAddSignatureMutation();
 
   const clearCanvas = () => {
@@ -30,7 +29,6 @@ const SignatureDialog = ({
   };
 
   const handleClose = () => {
-    setSuccess(false);
     setIsEmpty(true);
     sigCanvas.current?.clear();
     onClose();
@@ -46,12 +44,8 @@ const SignatureDialog = ({
 
     try {
       const result = await addSignature({ entryId, formData }).unwrap();
-      setSuccess(true);
       if (onSignatureSaved)
         onSignatureSaved(result?.data?.attachment_path ?? null);
-      setTimeout(() => {
-        handleClose();
-      }, 1200);
     } catch (err) {
       console.error("Failed to submit signature:", err);
     }
@@ -75,64 +69,51 @@ const SignatureDialog = ({
       </div>
 
       <DialogContent className="sig__content">
-        {success ? (
-          <div className="sig__success">
-            <CheckIcon className="sig__success-icon" />
-            <p className="sig__success-msg">Signature added successfully!</p>
-          </div>
-        ) : (
-          <>
-            <p className="sig__instruction">
-              Sign inside the box below using your mouse or finger.
-            </p>
-            <div className="sig__canvas-wrapper">
-              <SignatureCanvas
-                ref={sigCanvas}
-                canvasProps={{
-                  width: 560,
-                  height: 220,
-                  className: "sig__canvas",
-                  style: { touchAction: "none", width: "100%", height: "auto" },
-                }}
-                onEnd={() => setIsEmpty(sigCanvas.current?.isEmpty() ?? true)}
-              />
-              <span className="sig__canvas-label">
-                {signerName || "Signature"}
-              </span>
-              <button
-                className="sig__clear-btn"
-                onClick={clearCanvas}
-                type="button">
-                <DeleteOutlineIcon sx={{ fontSize: 16 }} />
-                <span>Clear</span>
-              </button>
-            </div>
-            <p className="sig__signer-name">{signerName}</p>
-          </>
-        )}
+        <p className="sig__instruction">
+          Sign inside the box below using your mouse or finger.
+        </p>
+        <div className="sig__canvas-wrapper">
+          <SignatureCanvas
+            ref={sigCanvas}
+            canvasProps={{
+              width: 560,
+              height: 220,
+              className: "sig__canvas",
+              style: { touchAction: "none", width: "100%", height: "auto" },
+            }}
+            onEnd={() => setIsEmpty(sigCanvas.current?.isEmpty() ?? true)}
+          />
+          <span className="sig__canvas-label">{signerName || "Signature"}</span>
+          <button
+            className="sig__clear-btn"
+            onClick={clearCanvas}
+            type="button">
+            <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+            <span>Clear</span>
+          </button>
+        </div>
+        <p className="sig__signer-name">{signerName}</p>
       </DialogContent>
 
-      {!success && (
-        <DialogActions className="sig__footer">
-          <button className="sig__btn sig__btn--cancel" onClick={handleClose}>
-            Cancel
-          </button>
-          <button
-            className="sig__btn sig__btn--submit"
-            onClick={handleSubmit}
-            disabled={isEmpty || isLoading}
-            type="button">
-            {isLoading ? (
-              <CircularProgress size={14} sx={{ color: "#fff" }} />
-            ) : (
-              <>
-                <CheckIcon sx={{ fontSize: 15 }} />
-                <span>Add Signature</span>
-              </>
-            )}
-          </button>
-        </DialogActions>
-      )}
+      <DialogActions className="sig__footer">
+        <button className="sig__btn sig__btn--cancel" onClick={handleClose}>
+          Cancel
+        </button>
+        <button
+          className="sig__btn sig__btn--submit"
+          onClick={handleSubmit}
+          disabled={isEmpty || isLoading}
+          type="button">
+          {isLoading ? (
+            <CircularProgress size={14} sx={{ color: "#fff" }} />
+          ) : (
+            <>
+              <CheckIcon sx={{ fontSize: 15 }} />
+              <span>Add Signature</span>
+            </>
+          )}
+        </button>
+      </DialogActions>
     </Dialog>
   );
 };
