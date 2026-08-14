@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm, useFieldArray, Controller, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import Dialog from "@mui/material/Dialog";
@@ -47,6 +47,8 @@ const QUESTION_TYPES = [
   },
 ];
 
+const TOTAL_SCORE_GRADE = 100;
+
 const defaultOption = (order_index = 1) => ({
   option_text: "",
   order_index,
@@ -66,6 +68,7 @@ const defaultQuestion = (order_index = 1) => ({
 const defaultSection = (order_index = 1) => ({
   title: "",
   order_index,
+  score_grade: "",
   questions: [defaultQuestion(1)],
 });
 
@@ -88,6 +91,10 @@ const questionSchema = yup.object({
 const sectionSchema = yup.object({
   title: yup.string().required("Section title is required"),
   order_index: yup.number(),
+  score_grade: yup
+    .string()
+    .required("Section grade is required")
+    .matches(/^\d+$/, "Numbers only"),
   questions: yup
     .array()
     .of(questionSchema)
@@ -99,7 +106,18 @@ const schema = yup.object({
   sections: yup
     .array()
     .of(sectionSchema)
-    .min(1, "At least one section is required"),
+    .min(1, "At least one section is required")
+    .test(
+      "total-score-grade",
+      `Total section grade must not exceed ${TOTAL_SCORE_GRADE}%`,
+      (sections) => {
+        const total = (sections ?? []).reduce(
+          (acc, s) => acc + (Number(s.score_grade) || 0),
+          0,
+        );
+        return total <= TOTAL_SCORE_GRADE;
+      },
+    ),
 });
 
 const SkeletonLoader = () => (
@@ -348,7 +366,16 @@ const SectionCard = ({
     name: `sections.${sIdx}.questions`,
   });
 
+  const watchedSections = useWatch({ control, name: "sections" }) ?? [];
+
   const errS = errors?.sections?.[sIdx];
+
+  const otherSectionsTotal = watchedSections.reduce((acc, s, idx) => {
+    if (idx === sIdx) return acc;
+    return acc + (Number(s?.score_grade) || 0);
+  }, 0);
+
+  const remainingGrade = Math.max(0, TOTAL_SCORE_GRADE - otherSectionsTotal);
 
   return (
     <div className="clm__section-card">
@@ -394,6 +421,80 @@ const SectionCard = ({
         <p className="clm__error">
           <ReportProblemIcon />
           {errS.title.message}
+        </p>
+      )}
+
+      <div
+        className={`clm__input-wrap${errS?.score_grade ? " clm__input-wrap--error" : ""}${disabled ? " clm__input-wrap--disabled" : ""}`}>
+        <label className="clm__label">
+          Section Grade
+          {!disabled && <span className="clm__required"> *</span>}
+          {!disabled && (
+            <span className="clm__label-hint"> (max {remainingGrade}%)</span>
+          )}
+        </label>
+        {disabled ? (
+          <input
+            type="text"
+            value={
+              control._formValues?.sections?.[sIdx]?.score_grade !== "" &&
+              control._formValues?.sections?.[sIdx]?.score_grade != null
+                ? `${control._formValues.sections[sIdx].score_grade}%`
+                : "—"
+            }
+            disabled
+            readOnly
+          />
+        ) : (
+          <Controller
+            control={control}
+            name={`sections.${sIdx}.score_grade`}
+            render={({ field }) => (
+              <div style={{ position: "relative" }}>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={field.value ?? ""}
+                  onChange={(e) => {
+                    const digitsOnly = e.target.value.replace(/[^\d]/g, "");
+                    if (digitsOnly === "") {
+                      field.onChange("");
+                      return;
+                    }
+                    const numeric = Number(digitsOnly);
+                    const capped =
+                      numeric > remainingGrade ? remainingGrade : numeric;
+                    field.onChange(String(capped));
+                  }}
+                  autoComplete="off"
+                  placeholder="e.g. 30"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    paddingRight: "28px",
+                  }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#888",
+                    fontSize: "14px",
+                    pointerEvents: "none",
+                  }}>
+                  %
+                </span>
+              </div>
+            )}
+          />
+        )}
+      </div>
+      {errS?.score_grade && (
+        <p className="clm__error">
+          <ReportProblemIcon />
+          {errS.score_grade.message}
         </p>
       )}
 
@@ -476,6 +577,10 @@ const CheckListModal = ({ open, onClose, selectedId = null }) => {
         sections: (rowData.sections ?? []).map((sec, si) => ({
           title: sec.title ?? "",
           order_index: sec.order_index ?? si + 1,
+          score_grade:
+            sec.score_grade !== undefined && sec.score_grade !== null
+              ? String(sec.score_grade)
+              : "",
           questions: (sec.questions ?? []).map((q, qi) => ({
             question_text: q.question_text ?? "",
             question_type: q.question_type ?? "multiple_choice",
@@ -497,6 +602,7 @@ const CheckListModal = ({ open, onClose, selectedId = null }) => {
     sections: form.sections.map((sec, si) => ({
       title: sec.title,
       order_index: si + 1,
+      score_grade: Number(sec.score_grade),
       questions: sec.questions.map((q, qi) => {
         const base = {
           question_text: q.question_text,
