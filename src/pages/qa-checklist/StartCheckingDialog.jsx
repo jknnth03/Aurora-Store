@@ -15,18 +15,22 @@ import SearchIcon from "@mui/icons-material/Search";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
+import DoneAllIcon from "@mui/icons-material/DoneAll";
 import AttachmentViewerDialog from "./AttachmentViewerDialog";
+import GuidelineDialog from "./GuidelineDialog";
 import {
   useGetQaChecklistByIdQuery,
   useAnswerChecklistMutation,
   useReSurveyMutation,
 } from "../../features/api/qa-checklist/qaChecklistApi";
 import { useGetChecklistByIdQuery } from "../../features/api/masterlist/checklistApi";
+import { useGetGuidelinesQuery } from "../../features/api/masterlist/guidelinesApi";
+import { useGetScoreRatingsQuery } from "../../features/api/masterlist/scoreRatingApi";
 import "./StartCheckingDialog.scss";
 import { useGetUsersQuery } from "../../features/api/usermanagement/userApi";
 
-const isPass = (compliance) => compliance === "1";
-const needsRemarks = (compliance) => compliance === "2" || compliance === "3";
+const COMPLIANCE_COLORS = ["green", "orange", "red"];
 
 const RequiredMark = () => (
   <span className="scd__required" aria-hidden="true">
@@ -313,6 +317,33 @@ const StartCheckingDialog = ({
     { skip: !staffDropdownOpen },
   );
 
+  const [guidelineOpen, setGuidelineOpen] = useState(false);
+
+  const { data: guidelinesData, isFetching: isFetchingGuidelines } =
+    useGetGuidelinesQuery(undefined, { skip: !open });
+
+  const matchedGuideline = (guidelinesData?.data ?? []).find(
+    (g) =>
+      g.status === "active" &&
+      (g.applies_to_all || g.checklists?.some((c) => c.id === checklistId)),
+  );
+
+  const { data: scoreRatingsData } = useGetScoreRatingsQuery(undefined, {
+    skip: !open,
+  });
+
+  const scoreOptions = (scoreRatingsData?.data?.data ?? [])
+    .slice()
+    .sort((a, b) => b.score - a.score)
+    .map((r) => ({ id: r.id, option_text: String(r.score) }));
+
+  const maxScoreOption = scoreOptions[0]?.option_text ?? null;
+
+  const isPass = (compliance) =>
+    compliance !== "" && compliance === maxScoreOption;
+  const needsRemarks = (compliance) =>
+    compliance !== "" && compliance !== maxScoreOption;
+
   const storeData = data?.data ?? null;
   const storeChecklist = storeData?.store_checklist?.[0] ?? null;
 
@@ -322,6 +353,7 @@ const StartCheckingDialog = ({
   const sections = checklistData?.data?.sections ?? [];
 
   const [answers, setAnswers] = useState({});
+  const [setAllSelections, setSetAllSelections] = useState({});
   const [others, setOthers] = useState({
     start_time: "",
     end_time: "",
@@ -424,6 +456,11 @@ const StartCheckingDialog = ({
     });
   };
 
+  const handleSetAll = (section, optionText) => {
+    setSetAllSelections((prev) => ({ ...prev, [section.id]: optionText }));
+    section.questions.forEach((q) => setCompliance(q.id, optionText));
+  };
+
   const setRemarks = (qId, val) => {
     setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], remarks: val } }));
     if (val.trim()) {
@@ -471,6 +508,7 @@ const StartCheckingDialog = ({
 
   const handleClose = () => {
     setAnswers({});
+    setSetAllSelections({});
     setErrors({});
     setOthers({
       start_time: "",
@@ -607,57 +645,117 @@ const StartCheckingDialog = ({
                 <span className="scd__name-value">
                   {storeData.name} — {storeChecklist?.checklist ?? ""}
                 </span>
+                <Tooltip
+                  title={
+                    !matchedGuideline && !isFetchingGuidelines
+                      ? "No guideline available for this checklist"
+                      : ""
+                  }
+                  placement="top">
+                  <span>
+                    <Button
+                      size="small"
+                      startIcon={<MenuBookIcon sx={{ fontSize: 15 }} />}
+                      onClick={() => setGuidelineOpen(true)}
+                      disabled={!matchedGuideline && !isFetchingGuidelines}
+                      className="scd__btn-guideline">
+                      VIEW GUIDELINE
+                    </Button>
+                  </span>
+                </Tooltip>
               </div>
               {!storeChecklist ? (
                 <p className="scd__empty">No store checklist found.</p>
               ) : (
                 <div className="scd__sections">
-                  <div className="scd__section">
-                    <div className="scd__section-header">
-                      <span className="scd__section-title">
-                        {storeChecklist.checklist}
-                      </span>
-                    </div>
-                    <div className="scd__table-scroll">
-                      <table className="scd__table">
-                        <thead>
-                          <tr className="scd__thead-row">
-                            <th className="scd__th scd__th--item">Item</th>
-                            <th className="scd__th scd__th--compliance">
-                              Compliance{!isViewMode && <RequiredMark />}
-                            </th>
-                            <th className="scd__th scd__th--remarks">
-                              Remarks
-                              {!isViewMode && (
-                                <span className="scd__th-hint">
-                                  {" "}
-                                  (required if 2 or 3)
-                                </span>
-                              )}
-                            </th>
-                            <th className="scd__th scd__th--attachment">
-                              Attachment
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {isFetchingChecklist ? (
-                            <tr>
-                              <td colSpan={4}>
-                                <SkeletonBlock />
-                              </td>
-                            </tr>
-                          ) : sections.length === 0 ? (
-                            <tr>
-                              <td colSpan={4}>
-                                <em className="scd__empty">
-                                  No questions found.
-                                </em>
-                              </td>
-                            </tr>
-                          ) : (
-                            sections.flatMap((section) =>
-                              section.questions.map((q, qIdx) => {
+                  {isFetchingChecklist ? (
+                    <SkeletonBlock />
+                  ) : sections.length === 0 ? (
+                    <em className="scd__empty">No questions found.</em>
+                  ) : (
+                    sections.map((section) => (
+                      <div className="scd__section" key={section.id}>
+                        <div className="scd__section-header">
+                          <span className="scd__section-title">
+                            {section.name ??
+                              section.title ??
+                              section.section_name ??
+                              "Section"}
+                          </span>
+                        </div>
+                        <div className="scd__table-scroll">
+                          <table className="scd__table">
+                            <thead>
+                              <tr className="scd__thead-row">
+                                <th className="scd__th scd__th--item">Item</th>
+                                <th className="scd__th scd__th--compliance">
+                                  Compliance{!isViewMode && <RequiredMark />}
+                                </th>
+                                <th className="scd__th scd__th--remarks">
+                                  Remarks
+                                  {!isViewMode && (
+                                    <span className="scd__th-hint">
+                                      {" "}
+                                      (required unless{" "}
+                                      {maxScoreOption ?? "highest score"})
+                                    </span>
+                                  )}
+                                </th>
+                                <th className="scd__th scd__th--attachment">
+                                  Attachment
+                                </th>
+                              </tr>
+                              {!isViewMode &&
+                                section.questions.length > 0 &&
+                                scoreOptions.length > 0 && (
+                                  <tr className="scd__setall-row">
+                                    <td className="scd__td scd__td--item scd__setall-label">
+                                      <DoneAllIcon sx={{ fontSize: 14 }} />
+                                      <span>SET ALL TO</span>
+                                    </td>
+                                    <td className="scd__td scd__td--compliance">
+                                      <div className="scd__radio-box scd__radio-box--setall">
+                                        {scoreOptions.map((opt, optIdx) => (
+                                          <label
+                                            key={opt.id}
+                                            className="scd__radio-item">
+                                            <input
+                                              type="radio"
+                                              name={`setall_${section.id}`}
+                                              value={opt.option_text}
+                                              checked={
+                                                setAllSelections[section.id] ===
+                                                opt.option_text
+                                              }
+                                              onChange={() =>
+                                                handleSetAll(
+                                                  section,
+                                                  opt.option_text,
+                                                )
+                                              }
+                                              className="scd__radio-input"
+                                            />
+                                            <span
+                                              className={`scd__radio-circle${COMPLIANCE_COLORS[optIdx] ? ` scd__radio-circle--${COMPLIANCE_COLORS[optIdx]}` : ""}`}
+                                            />
+                                            <span className="scd__radio-text">
+                                              {opt.option_text}
+                                            </span>
+                                          </label>
+                                        ))}
+                                      </div>
+                                    </td>
+                                    <td className="scd__td scd__td--remarks">
+                                      <span className="scd__setall-hint">
+                                        Applies to all items in this section
+                                      </span>
+                                    </td>
+                                    <td className="scd__td scd__td--attachment" />
+                                  </tr>
+                                )}
+                            </thead>
+                            <tbody>
+                              {section.questions.map((q, qIdx) => {
                                 const compliance =
                                   answers[q.id]?.compliance ?? "";
                                 const pass = isPass(compliance);
@@ -675,7 +773,7 @@ const StartCheckingDialog = ({
                                     <td className="scd__td scd__td--compliance">
                                       <div
                                         className={`scd__radio-box${isViewMode ? " scd__radio-box--readonly" : ""}${complianceError ? " scd__radio-box--error" : ""}`}>
-                                        {q.options.map((opt) => (
+                                        {scoreOptions.map((opt, optIdx) => (
                                           <label
                                             key={opt.id}
                                             className={`scd__radio-item${isViewMode ? " scd__radio-item--readonly" : ""}`}>
@@ -696,7 +794,9 @@ const StartCheckingDialog = ({
                                               className="scd__radio-input"
                                               readOnly={isViewMode}
                                             />
-                                            <span className="scd__radio-circle" />
+                                            <span
+                                              className={`scd__radio-circle${COMPLIANCE_COLORS[optIdx] ? ` scd__radio-circle--${COMPLIANCE_COLORS[optIdx]}` : ""}`}
+                                            />
                                             <span className="scd__radio-text">
                                               {opt.option_text}
                                             </span>
@@ -754,13 +854,13 @@ const StartCheckingDialog = ({
                                     </td>
                                   </tr>
                                 );
-                              }),
-                            )
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 
@@ -1050,6 +1150,13 @@ const StartCheckingDialog = ({
           {snackbar.message}
         </MuiAlert>
       </Snackbar>
+
+      <GuidelineDialog
+        open={guidelineOpen}
+        onClose={() => setGuidelineOpen(false)}
+        guideline={matchedGuideline}
+        isLoading={isFetchingGuidelines}
+      />
     </>
   );
 };

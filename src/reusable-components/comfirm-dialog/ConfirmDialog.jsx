@@ -12,6 +12,8 @@ const ConfirmDialog = ({
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
   isLoading = false,
+  confirmDisabled = false,
+  children,
 }) => {
   return (
     <Dialog
@@ -28,6 +30,8 @@ const ConfirmDialog = ({
         <h3 className="cd__title">{title}</h3>
         {message && <p className="cd__message">{message}</p>}
 
+        {children && <div className="cd__extra">{children}</div>}
+
         <div className="cd__footer">
           <button
             className="cd__cancel-btn"
@@ -38,7 +42,7 @@ const ConfirmDialog = ({
           <button
             className="cd__confirm-btn"
             onClick={onConfirm}
-            disabled={isLoading}>
+            disabled={isLoading || confirmDisabled}>
             {isLoading ? "Processing..." : confirmLabel}
           </button>
         </div>

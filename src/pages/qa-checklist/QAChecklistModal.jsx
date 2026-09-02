@@ -19,11 +19,15 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import ChecklistIcon from "@mui/icons-material/Checklist";
 import AssessmentIcon from "@mui/icons-material/Assessment";
+import SkipNextIcon from "@mui/icons-material/SkipNext";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import {
   useGetQaChecklistByIdQuery,
   useForApprovalMutation,
+  useSkipWeekMutation,
 } from "../../features/api/qa-checklist/qaChecklistApi";
 import QAReportDialog from "./QAReportDialog";
+import ConfirmDialog from "../../reusable-components/comfirm-dialog/ConfirmDialog";
 import "./QAChecklistModal.scss";
 import StartCheckingDialog from "./StartCheckingDialog";
 
@@ -44,6 +48,30 @@ const MONTHS = [
 
 const WEEK_LABELS = ["1st", "2nd", "3rd", "4th"];
 
+const generateConfirmCode = () => {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
+
+const buildCaptchaChars = (code) => {
+  return code.split("").map((char) => {
+    const rotate = Math.floor(Math.random() * 36) - 18;
+    const translateY = Math.floor(Math.random() * 14) - 7;
+    const scale = (0.88 + Math.random() * 0.3).toFixed(2);
+    return {
+      char,
+      style: {
+        transform: `rotate(${rotate}deg) translateY(${translateY}px) scale(${scale})`,
+      },
+    };
+  });
+};
+
 export const StatusChip = ({ status }) => {
   const map = {
     done: { label: "Done", cls: "chip--done" },
@@ -53,6 +81,7 @@ export const StatusChip = ({ status }) => {
     approved: { label: "Pending", cls: "chip--pending" },
     "for approval": { label: "Waiting for Approval", cls: "chip--pending" },
     rejected: { label: "Rejected", cls: "chip--overdue" },
+    skipped: { label: "Skipped", cls: "chip--incomplete" },
     previous_month_incomplete: {
       label: "Previous Month Incomplete",
       cls: "chip--incomplete",
@@ -89,7 +118,22 @@ const isAutoGraded = (entry) => {
 };
 
 const getApproverRemarks = (entry) => {
+  const status = entry?.status?.toLowerCase?.();
+  if (status === "skipped") return "";
   if (entry?.approver_remarks) return entry.approver_remarks;
+  if (!entry?.for_approval_reason) return "";
+  try {
+    const parsed = JSON.parse(entry.for_approval_reason);
+    return parsed.reason || "";
+  } catch {
+    return "";
+  }
+};
+
+const getSkipRemarks = (entry) => {
+  const status = entry?.status?.toLowerCase?.();
+  if (status !== "skipped") return "";
+  if (entry?.skip_reason) return entry.skip_reason;
   if (!entry?.for_approval_reason) return "";
   try {
     const parsed = JSON.parse(entry.for_approval_reason);
@@ -137,6 +181,7 @@ const RowActionMenu = ({
   onForApproval,
   onShowChecklist,
   onShowReport,
+  onSkip,
   isPreviousWeekDone,
 }) => {
   const [anchor, setAnchor] = useState(null);
@@ -223,6 +268,18 @@ const RowActionMenu = ({
             }}>
             <AssessmentIcon className="qa-cm__menu-icon" />
             Show Report
+          </MenuItem>
+        )}
+
+        {isPending && (
+          <MenuItem
+            className="qa-cm__menu-item"
+            onClick={() => {
+              setAnchor(null);
+              onSkip?.(entry);
+            }}>
+            <SkipNextIcon className="qa-cm__menu-icon" />
+            Skip This Week
           </MenuItem>
         )}
       </Menu>
@@ -325,11 +382,24 @@ const QAChecklistModal = ({
   const [checklistEntry, setChecklistEntry] = useState(null);
   const [reportEntry, setReportEntry] = useState(null);
   const [startCheckingEntry, setStartCheckingEntry] = useState(null);
+
+  const [skipEntry, setSkipEntry] = useState(null);
+  const [skipReason, setSkipReason] = useState("");
+  const [skipReasonError, setSkipReasonError] = useState("");
+
+  const [skipCodeDialogOpen, setSkipCodeDialogOpen] = useState(false);
+  const [skipGeneratedCode, setSkipGeneratedCode] = useState("");
+  const [skipCaptchaChars, setSkipCaptchaChars] = useState([]);
+  const [skipTypedCode, setSkipTypedCode] = useState("");
+  const [skipCodeError, setSkipCodeError] = useState("");
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
+
+  const [skipWeek, { isLoading: isSkipping }] = useSkipWeekMutation();
 
   const storeId = rowData?.id;
   const storeChecklistId = rowData?.store_checklist?.[0]?.id;
@@ -374,13 +444,20 @@ const QAChecklistModal = ({
     if (idx > 0) {
       const prevEntry = rows[idx - 1].entry;
       const prevStatus = prevEntry?.status?.toLowerCase?.() ?? "";
-      isPreviousWeekDone = prevStatus === "done" || prevStatus === "completed";
+      isPreviousWeekDone =
+        prevStatus === "done" ||
+        prevStatus === "completed" ||
+        prevStatus === "skipped";
     }
     return { ...row, isPreviousWeekDone };
   });
 
   const hasAnyRemarks = rowsWithPrevStatus.some((row) =>
     Boolean(getApproverRemarks(row.entry)),
+  );
+
+  const hasAnySkipRemarks = rowsWithPrevStatus.some((row) =>
+    Boolean(getSkipRemarks(row.entry)),
   );
 
   const monthLabel = MONTHS[(month ?? 1) - 1];
@@ -425,6 +502,82 @@ const QAChecklistModal = ({
     setReportEntry(freshEntry ?? entry);
   };
 
+  const resetSkipFlow = () => {
+    setSkipEntry(null);
+    setSkipReason("");
+    setSkipReasonError("");
+    setSkipCodeDialogOpen(false);
+    setSkipGeneratedCode("");
+    setSkipCaptchaChars([]);
+    setSkipTypedCode("");
+    setSkipCodeError("");
+  };
+
+  const handleSkipReasonClose = () => {
+    resetSkipFlow();
+  };
+
+  const handleSkipReasonConfirm = () => {
+    if (!skipReason.trim()) {
+      setSkipReasonError("Please enter a valid reason.");
+      return;
+    }
+    const code = generateConfirmCode();
+    setSkipGeneratedCode(code);
+    setSkipCaptchaChars(buildCaptchaChars(code));
+    setSkipTypedCode("");
+    setSkipCodeError("");
+    setSkipCodeDialogOpen(true);
+  };
+
+  const handleSkipCodeRefresh = () => {
+    const code = generateConfirmCode();
+    setSkipGeneratedCode(code);
+    setSkipCaptchaChars(buildCaptchaChars(code));
+    setSkipTypedCode("");
+    setSkipCodeError("");
+  };
+
+  const handleSkipCodeClose = () => {
+    setSkipCodeDialogOpen(false);
+    setSkipGeneratedCode("");
+    setSkipCaptchaChars([]);
+    setSkipTypedCode("");
+    setSkipCodeError("");
+  };
+
+  const handleSkipCodeConfirm = async () => {
+    if (skipTypedCode.trim() !== skipGeneratedCode) {
+      setSkipCodeError("Code does not match. Please try again.");
+      return;
+    }
+    try {
+      await skipWeek({
+        store_checklist_id: storeChecklistId,
+        weekly_record_id: skipEntry?.id,
+        week: skipEntry?.week,
+        month,
+        year,
+        reason: skipReason.trim(),
+        confirm: true,
+        confirm_code: skipGeneratedCode,
+      }).unwrap();
+      resetSkipFlow();
+      refetch();
+      setSnackbar({
+        open: true,
+        message: "Week skipped successfully.",
+        severity: "success",
+      });
+    } catch {
+      setSnackbar({
+        open: true,
+        message: "Something went wrong while skipping this week.",
+        severity: "error",
+      });
+    }
+  };
+
   return (
     <>
       <Dialog
@@ -452,6 +605,9 @@ const QAChecklistModal = ({
                 {hasAnyRemarks && (
                   <th className="qa-cm__th">Approver Remarks</th>
                 )}
+                {hasAnySkipRemarks && (
+                  <th className="qa-cm__th">Skipped Remarks</th>
+                )}
                 <th className="qa-cm__th qa-cm__th--right">Actions</th>
               </tr>
             </thead>
@@ -459,13 +615,16 @@ const QAChecklistModal = ({
               {isFetching
                 ? WEEK_LABELS.map((lbl) => (
                     <tr key={lbl} className="qa-cm__tr">
-                      {Array.from({ length: hasAnyRemarks ? 7 : 6 }).map(
-                        (_, i) => (
-                          <td key={i} className="qa-cm__td">
-                            <Skeleton variant="text" width="70%" height={20} />
-                          </td>
-                        ),
-                      )}
+                      {Array.from({
+                        length:
+                          6 +
+                          (hasAnyRemarks ? 1 : 0) +
+                          (hasAnySkipRemarks ? 1 : 0),
+                      }).map((_, i) => (
+                        <td key={i} className="qa-cm__td">
+                          <Skeleton variant="text" width="70%" height={20} />
+                        </td>
+                      ))}
                     </tr>
                   ))
                 : rowsWithPrevStatus.map(
@@ -489,6 +648,13 @@ const QAChecklistModal = ({
                             </span>
                           </td>
                         )}
+                        {hasAnySkipRemarks && (
+                          <td className="qa-cm__td">
+                            <span className="qa-cm__remarks">
+                              {getSkipRemarks(entry)}
+                            </span>
+                          </td>
+                        )}
                         <td className="qa-cm__td qa-cm__td--right">
                           <RowActionMenu
                             entry={entry}
@@ -496,6 +662,7 @@ const QAChecklistModal = ({
                             onForApproval={setApprovalEntry}
                             onShowChecklist={setChecklistEntry}
                             onShowReport={handleShowReport}
+                            onSkip={setSkipEntry}
                             isPreviousWeekDone={isPreviousWeekDone}
                           />
                         </td>
@@ -561,6 +728,126 @@ const QAChecklistModal = ({
         storeName={storeName}
         onSignatureComplete={handleSignatureComplete}
       />
+
+      <ConfirmDialog
+        open={Boolean(skipEntry) && !skipCodeDialogOpen}
+        onClose={handleSkipReasonClose}
+        onConfirm={handleSkipReasonConfirm}
+        title="Skip this week?"
+        message={`This will mark week ${skipEntry?.week ?? ""} as skipped for ${storeName}. This action cannot be undone.`}
+        confirmLabel="Continue"
+        cancelLabel="Cancel"
+        confirmDisabled={!skipReason.trim()}>
+        <TextField
+          multiline
+          rows={3}
+          fullWidth
+          placeholder="Remarks"
+          value={skipReason}
+          onChange={(e) => {
+            setSkipReason(e.target.value);
+            if (skipReasonError) setSkipReasonError("");
+          }}
+          error={Boolean(skipReasonError)}
+          helperText={skipReasonError}
+          variant="outlined"
+        />
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={skipCodeDialogOpen}
+        onClose={handleSkipCodeClose}
+        onConfirm={handleSkipCodeConfirm}
+        title="Confirm skip"
+        message={`Type the code below to confirm skipping week ${skipEntry?.week ?? ""}.`}
+        confirmLabel="Skip Week"
+        cancelLabel="Cancel"
+        isLoading={isSkipping}
+        confirmDisabled={!skipTypedCode.trim()}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "stretch",
+            gap: 8,
+            width: "100%",
+            marginBottom: 10,
+          }}>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+              height: 64,
+              padding: "0 12px",
+              borderRadius: 8,
+              border: "1px solid #d0d0d0",
+              background: "#ffffff",
+              boxSizing: "border-box",
+              overflow: "hidden",
+            }}>
+            {skipCaptchaChars.map((c, i) => (
+              <span
+                key={i}
+                style={{
+                  display: "inline-block",
+                  fontFamily: "Georgia, 'Times New Roman', serif",
+                  fontSize: "1.7rem",
+                  fontWeight: 700,
+                  color: "#1a1a1a",
+                  userSelect: "none",
+                  lineHeight: 1,
+                  ...c.style,
+                }}>
+                {c.char}
+              </span>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleSkipCodeRefresh}
+            style={{
+              flexShrink: 0,
+              width: 44,
+              height: 64,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px solid #d0d0d0",
+              borderRadius: 8,
+              background: "#ffffff",
+              color: "#6b6b6b",
+              cursor: "pointer",
+              padding: 0,
+            }}>
+            <RefreshIcon fontSize="small" />
+          </button>
+        </div>
+        <p
+          style={{
+            fontFamily: "Poppins, sans-serif",
+            fontSize: "0.78rem",
+            color: "#6b6b6b",
+            margin: "0 0 6px",
+            textAlign: "left",
+            width: "100%",
+          }}>
+          Type the code above
+        </p>
+        <TextField
+          fullWidth
+          placeholder="Enter the code"
+          value={skipTypedCode}
+          onChange={(e) => {
+            setSkipTypedCode(e.target.value);
+            if (skipCodeError) setSkipCodeError("");
+          }}
+          error={Boolean(skipCodeError)}
+          helperText={skipCodeError}
+          variant="outlined"
+        />
+      </ConfirmDialog>
 
       <Snackbar
         open={snackbar.open}

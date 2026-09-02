@@ -54,6 +54,24 @@
     line-height: 1.5;
   }
 
+  &__extra {
+    width: 100%;
+    margin: 0 0 20px;
+    text-align: left;
+
+    .MuiOutlinedInput-root {
+      font-family: "Poppins", sans-serif;
+      font-size: 0.82rem;
+      border-radius: 8px;
+    }
+
+    .MuiFormHelperText-root {
+      font-family: "Poppins", sans-serif;
+      font-size: 0.7rem;
+      margin-left: 2px;
+    }
+  }
+
   &__footer {
     display: flex;
     align-items: center;

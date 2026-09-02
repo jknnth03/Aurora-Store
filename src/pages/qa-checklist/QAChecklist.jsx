@@ -1,16 +1,22 @@
 import { useState } from "react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import IconButton from "@mui/material/IconButton";
+import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import PageContainer from "../../reusable-components/page-container/PageContainer";
 import QAChecklistTable from "./QAChecklistTable";
 import QAChecklistModal, { StatusChip } from "./QAChecklistModal";
+import ExportDialog from "./ExportDialog";
 import TablePagination from "../../reusable-components/table-pagination/TablePagination";
 import { TableDropdownField } from "../../reusable-components/table-search/TableSearch";
-import { useGetQaChecklistsQuery } from "../../features/api/qa-checklist/qaChecklistApi";
+import {
+  useGetQaChecklistsQuery,
+  useLazyExportAreaMonthlyReportQuery,
+} from "../../features/api/qa-checklist/qaChecklistApi";
 import { useGetRegionsQuery } from "../../features/api/masterlist/regionApi";
 import { useGetAreasQuery } from "../../features/api/masterlist/areaApi";
 import {
@@ -34,6 +40,8 @@ const MONTHS = [
   "December",
 ];
 
+const COMPLETED_STATUSES = ["completed", "done", "skipped"];
+
 const getStoreStatus = (row, month, year, allowableDays) => {
   const storeChecklist = row.store_checklist ?? [];
 
@@ -55,7 +63,7 @@ const getStoreStatus = (row, month, year, allowableDays) => {
   const weeklyRecord = sc?.weekly_record ?? [];
 
   const completedWeeks = weeklyRecord.filter((w) =>
-    ["completed", "done"].includes(w.status?.toLowerCase()),
+    COMPLETED_STATUSES.includes(w.status?.toLowerCase()),
   ).length;
 
   if (completedWeeks >= 4) {
@@ -92,7 +100,7 @@ const getCompletedWeeks = (row) => {
   const records = sc?.weekly_record ?? [];
 
   const completedCount = records.filter((w) =>
-    ["completed", "done"].includes(w.status?.toLowerCase()),
+    COMPLETED_STATUSES.includes(w.status?.toLowerCase()),
   ).length;
 
   return completedCount;
@@ -172,9 +180,14 @@ const QAChecklist = () => {
   const [sortOrder, setSortOrder] = useState("asc");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "" });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "warning",
+  });
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   const { data: regionsData } = useGetRegionsQuery({
     status: "active",
@@ -193,8 +206,18 @@ const QAChecklist = () => {
     { skip: !selectedRegion },
   );
 
+  const { data: allAreasData } = useGetAreasQuery({
+    status: "active",
+    search: "",
+    page: 1,
+    per_page: 9999,
+  });
+
   const { data: gradeRulesData } = useGetGradeRulesQuery();
   const { data: allowableDaysData } = useGetAllowableDaysQuery();
+
+  const [triggerExportAreaMonthlyReport, { isFetching: isExporting }] =
+    useLazyExportAreaMonthlyReportQuery();
 
   const capPercentage = gradeRulesData?.data?.[0]?.cap_percentage ?? null;
   const allowableDays = allowableDaysData?.data?.allowable_days ?? null;
@@ -205,6 +228,11 @@ const QAChecklist = () => {
   }));
 
   const areaOptions = (areasData?.data?.data ?? []).map((a) => ({
+    value: a.id,
+    label: a.name,
+  }));
+
+  const exportAreaOptions = (allAreasData?.data?.data ?? []).map((a) => ({
     value: a.id,
     label: a.name,
   }));
@@ -262,7 +290,11 @@ const QAChecklist = () => {
     const status = getStoreStatus(row, month, year, allowableDays);
 
     if (SNACKBAR_MESSAGES[status]) {
-      setSnackbar({ open: true, message: SNACKBAR_MESSAGES[status] });
+      setSnackbar({
+        open: true,
+        message: SNACKBAR_MESSAGES[status],
+        severity: "warning",
+      });
       return;
     }
 
@@ -276,7 +308,7 @@ const QAChecklist = () => {
   };
 
   const handleCloseSnackbar = () => {
-    setSnackbar({ open: false, message: "" });
+    setSnackbar({ open: false, message: "", severity: "warning" });
   };
 
   const handleRegionChange = (val) => {
@@ -288,6 +320,53 @@ const QAChecklist = () => {
   const handleAreaChange = (val) => {
     setSelectedArea(val);
     setPage(1);
+  };
+
+  const handleOpenExportDialog = () => {
+    setExportDialogOpen(true);
+  };
+
+  const handleCloseExportDialog = () => {
+    setExportDialogOpen(false);
+  };
+
+  const handleExport = async ({
+    area_id,
+    month: exportMonth,
+    year: exportYear,
+  }) => {
+    try {
+      const result = await triggerExportAreaMonthlyReport({
+        area_id,
+        month: exportMonth,
+        year: exportYear,
+      }).unwrap();
+
+      if (!result?.blob) {
+        throw new Error("No file returned");
+      }
+
+      const monthLabel = MONTHS[exportMonth - 1];
+      const filename =
+        result.filename ?? `Area_${area_id}_${monthLabel}_${exportYear}.xlsx`;
+
+      const url = URL.createObjectURL(result.blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      setExportDialogOpen(false);
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: "Failed to export area report.",
+        severity: "error",
+      });
+    }
   };
 
   const monthLabel = MONTHS[month - 1];
@@ -333,6 +412,16 @@ const QAChecklist = () => {
                     <ChevronRightIcon />
                   </IconButton>
                 </div>
+
+                <div className="qa-checklist__actions-right">
+                  <Button
+                    className="qa-checklist__export-btn"
+                    startIcon={<FileDownloadOutlinedIcon />}
+                    onClick={handleOpenExportDialog}
+                    size="small">
+                    Export
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -367,6 +456,14 @@ const QAChecklist = () => {
         onClose={handleCloseModal}
       />
 
+      <ExportDialog
+        open={exportDialogOpen}
+        onClose={handleCloseExportDialog}
+        onExport={handleExport}
+        areaOptions={exportAreaOptions}
+        isExporting={isExporting}
+      />
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
@@ -374,7 +471,7 @@ const QAChecklist = () => {
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
         <Alert
           onClose={handleCloseSnackbar}
-          severity="warning"
+          severity={snackbar.severity}
           variant="filled">
           {snackbar.message}
         </Alert>

@@ -18,6 +18,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
+import DescriptionIcon from "@mui/icons-material/Description";
 
 export const iconStyles = {
   main: { fontSize: "22px" },
@@ -192,6 +193,13 @@ export const MODULES = {
         displayName: "Checklist Settings",
         path: "checklist-settings",
         icon: <TuneIcon sx={iconStyles.child} />,
+      },
+      GUIDELINES: {
+        name: "Guidelines",
+        permissionId: "settings.guidelines",
+        displayName: "Guidelines",
+        path: "guidelines",
+        icon: <DescriptionIcon sx={iconStyles.child} />,
       },
     },
   },

@@ -87,6 +87,11 @@
   &__name-row {
     margin-bottom: 10px;
     padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 
   &__name-value {
@@ -97,6 +102,40 @@
 
     [data-theme="dark"] & {
       color: rgba(255, 255, 255, 0.88);
+    }
+  }
+
+  &__btn-guideline {
+    font-family: "Poppins", sans-serif !important;
+    font-size: 0.68rem !important;
+    font-weight: 600 !important;
+    color: $primary-main !important;
+    background-color: transparent !important;
+    border: 1px solid $primary-main !important;
+    border-radius: 8px !important;
+    padding: 4px 12px !important;
+    text-transform: none !important;
+    flex-shrink: 0;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease,
+      border-color 0.15s ease !important;
+
+    &:hover {
+      background-color: $primary-main !important;
+      color: #fff !important;
+      border-color: $primary-main !important;
+    }
+
+    [data-theme="dark"] & {
+      color: $secondary-main !important;
+      border-color: $secondary-main !important;
+
+      &:hover {
+        background-color: $secondary-main !important;
+        color: #1e2a3a !important;
+        border-color: $secondary-main !important;
+      }
     }
   }
 
@@ -214,6 +253,48 @@
     }
   }
 
+  &__setall-row {
+    background: rgba($primary-main, 0.05);
+    border-bottom: 1px solid $border-color;
+
+    [data-theme="dark"] & {
+      background: rgba($secondary-main, 0.06);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  &__setall-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: $primary-main;
+
+    [data-theme="dark"] & {
+      color: $secondary-main;
+    }
+  }
+
+  &__setall-hint {
+    font-size: 0.7rem;
+    font-style: italic;
+    color: $text-muted;
+    font-family: "Poppins", sans-serif;
+
+    [data-theme="dark"] & {
+      color: rgba(255, 255, 255, 0.35);
+    }
+  }
+
+  &__radio-box--setall {
+    background: transparent;
+    border: none;
+    padding: 6px 0;
+  }
+
   &__tr {
     border-bottom: 1px solid $border-color;
 
@@ -267,31 +348,24 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 8px 16px;
-    padding: 8px 10px;
-    background: rgba($primary-main, 0.03);
+    padding: 4px 0;
+    background: transparent;
     border-radius: 6px;
-    border: 1px solid $border-color;
-
-    [data-theme="dark"] & {
-      background: rgba(255, 255, 255, 0.02);
-      border-color: rgba(255, 255, 255, 0.07);
-    }
+    border: none;
 
     &--readonly {
-      background: rgba(0, 0, 0, 0.03);
-      border-color: rgba(0, 0, 0, 0.08);
       cursor: default;
       pointer-events: none;
-
-      [data-theme="dark"] & {
-        background: rgba(255, 255, 255, 0.03);
-        border-color: rgba(255, 255, 255, 0.06);
-      }
     }
 
     &--error {
-      border-color: $status-error !important;
-      background: rgba($status-error, 0.03) !important;
+      background: rgba($status-error, 0.05) !important;
+      border-radius: 6px;
+      padding: 6px 8px;
+    }
+
+    &--setall {
+      padding: 4px 0;
     }
   }
 
@@ -358,6 +432,21 @@
         background: $secondary-main;
       }
     }
+
+    &:checked + .scd__radio-circle--green {
+      border-color: $status-success;
+      background: $status-success;
+    }
+
+    &:checked + .scd__radio-circle--orange {
+      border-color: $status-warning;
+      background: $status-warning;
+    }
+
+    &:checked + .scd__radio-circle--red {
+      border-color: $status-error;
+      background: $status-error;
+    }
   }
 
   &__radio-circle {
@@ -372,6 +461,18 @@
 
     [data-theme="dark"] & {
       border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    &--green {
+      border-color: $status-success;
+    }
+
+    &--orange {
+      border-color: $status-warning;
+    }
+
+    &--red {
+      border-color: $status-error;
     }
   }
 
@@ -645,8 +746,6 @@
       background: rgba(255, 255, 255, 0.02);
     }
   }
-
-  // ── Staff Autocomplete ───────────────────────────────────────────────────────
 
   &__ac {
     position: relative;
@@ -1023,8 +1122,6 @@
     }
   }
 
-  // ── Attachment Preview Dialog ────────────────────────────────────────────────
-
   &__preview-paper {
     border-radius: 14px !important;
     font-family: "Poppins", sans-serif;
@@ -1119,8 +1216,6 @@
       color: $secondary-main;
     }
   }
-
-  // ── View Mode Overrides ──────────────────────────────────────────────────────
 
   &__paper--view {
     .scd__name-value {

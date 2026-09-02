@@ -18,6 +18,7 @@ import QAChecklist from "../pages/qa-checklist/QAChecklist.jsx";
 import QAChecklistMonitoring from "../pages/qa-checklist-monitoring/QAChecklistMonitoring.jsx";
 import SurveyApproval from "../pages/survey-approval/SurveyApproval.jsx";
 import CheckListSettings from "../pages/settings/checklist-settings/CheckListSettings.jsx";
+import Guidelines from "../pages/masterlist/guidelines/Guidelines.jsx";
 
 export const ROUTES = [
   {
@@ -137,6 +138,14 @@ export const ROUTES = [
         element: <CheckListSettings />,
         handle: {
           permission: MODULES.SETTINGS.children.CHECKLIST_SETTINGS.permissionId,
+        },
+      },
+      {
+        id: "SETTINGS.GUIDELINES",
+        path: `${MODULES.SETTINGS.path}/${MODULES.SETTINGS.children.GUIDELINES.path}`,
+        element: <Guidelines />,
+        handle: {
+          permission: MODULES.SETTINGS.children.GUIDELINES.permissionId,
         },
       },
     ],

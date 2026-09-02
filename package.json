@@ -17,6 +17,7 @@
     "@mui/material": "^7.3.8",
     "@reduxjs/toolkit": "^2.11.2",
     "chart.js": "^4.5.1",
+    "exceljs": "^4.4.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "lottie-react": "^2.4.1",

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useRememberQueryParams } from "../../../hooks/useRememberQueryParams";
 import useDebounce from "../../../hooks/useDebounce";
-import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
+import DescriptionIcon from "@mui/icons-material/Description";
 import AddIcon from "@mui/icons-material/Add";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
+import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import PageContainer from "../../../reusable-components/page-container/PageContainer";
 import UniversalTable from "../../../reusable-components/universal-table/UniversalTable";
@@ -14,16 +15,96 @@ import {
   ArchivedButton,
 } from "../../../reusable-components/table-search/TableSearch";
 import {
-  useGetRolesQuery,
-  useArchiveRoleMutation,
-} from "../../../features/api/usermanagement/rolesApi";
+  useGetGuidelinesQuery,
+  useArchiveGuidelineMutation,
+} from "../../../features/api/masterlist/guidelinesApi";
 import ConfirmDialog from "../../../reusable-components/comfirm-dialog/ConfirmDialog";
 import RowMenu from "../../../reusable-components/row-menu/RowMenu";
-import RolesModal from "./RolesModal";
-import PermissionsDialog from "./PermissionsDialog";
-import "./Roles.scss";
+import GuidelinesModal from "./GuidelinesModal";
+import GuidelineFileDialog from "./GuidelineFileDialog";
+import "./Guidelines.scss";
+import {
+  getChipName,
+  useChipColors,
+  CHIP_SX,
+} from "../../../components/accountmenu/ChipColorPickerDialog";
 
-const Roles = () => {
+const buildColumns = (isArchived, onViewFile) => [
+  {
+    key: "title",
+    label: "Title",
+    sortable: true,
+    render: (val) => val ?? "—",
+  },
+  {
+    key: "file_url",
+    label: "View Guideline",
+    sortable: false,
+    render: (val, row) =>
+      val ? (
+        <div className="guidelines__view-cell">
+          <IconButton
+            size="small"
+            className="guidelines__view-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewFile(row);
+            }}>
+            <RemoveRedEyeIcon fontSize="small" />
+          </IconButton>
+        </div>
+      ) : (
+        "—"
+      ),
+  },
+  {
+    key: "applies_to_all",
+    label: "Applies To",
+    sortable: false,
+    render: (val, row) =>
+      val ? "All Checklists" : `${row?.checklists?.length ?? 0} Checklist(s)`,
+  },
+  {
+    key: "is_in_use",
+    label: "In Use",
+    sortable: false,
+    render: (val) => {
+      const chipId = val ? "chip-active" : "chip-inactive";
+      return (
+        <Chip
+          label={val ? "Yes" : "No"}
+          size="small"
+          sx={{
+            ...CHIP_SX,
+            backgroundColor: `var(--${chipId}-bg)`,
+            color: `var(--${chipId}-text)`,
+          }}
+        />
+      );
+    },
+  },
+  {
+    key: "status",
+    label: "Status",
+    sortable: false,
+    render: () => {
+      const chipId = isArchived ? "chip-inactive" : "chip-active";
+      return (
+        <Chip
+          label={getChipName(chipId)}
+          size="small"
+          sx={{
+            ...CHIP_SX,
+            backgroundColor: `var(--${chipId}-bg)`,
+            color: `var(--${chipId}-text)`,
+          }}
+        />
+      );
+    },
+  },
+];
+
+const Guidelines = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortBy, setSortBy] = useState(null);
@@ -34,27 +115,35 @@ const Roles = () => {
   const search = queryParams.search ?? "";
   const debouncedSearch = useDebounce(search, 500);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedRow, setSelectedRow] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toArchive, setToArchive] = useState(null);
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
   const [toRestore, setToRestore] = useState(null);
-  const [permsOpen, setPermsOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(null);
+  const [fileDialogOpen, setFileDialogOpen] = useState(false);
+  const [fileToView, setFileToView] = useState(null);
+
+  const handleViewFile = (row) => {
+    setFileToView(row);
+    setFileDialogOpen(true);
+  };
+
+  useChipColors();
 
   const currentStatus = showArchived ? "inactive" : "active";
 
-  const { data, isFetching, error } = useGetRolesQuery({
+  const { data, isFetching, error } = useGetGuidelinesQuery({
     status: currentStatus,
     search: debouncedSearch,
     page,
     per_page: rowsPerPage,
   });
-  const [archiveRole, { isLoading: isArchiving }] = useArchiveRoleMutation();
+  const [archiveGuideline, { isLoading: isArchiving }] =
+    useArchiveGuidelineMutation();
 
   const is404 = error?.status === 404;
-  const tableData = data?.data?.data ?? [];
-  const total = data?.data?.total ?? 0;
+  const tableData = data?.data ?? [];
+  const total = data?.total ?? tableData.length;
 
   const handleSort = (key, order) => {
     setSortBy(key);
@@ -70,44 +159,27 @@ const Roles = () => {
     setPage(1);
   };
 
-  const handleRestoreClick = (row) => {
-    setToRestore(row);
-    setRestoreConfirmOpen(true);
-  };
-  const handleConfirmRestore = async () => {
-    try {
-      await archiveRole(toRestore.id).unwrap();
-      window.__snackbar__?.enqueueSnackbar("Role restored successfully.", {
-        variant: "success",
-      });
-      setRestoreConfirmOpen(false);
-      setToRestore(null);
-      resetAfterRestore();
-    } catch (err) {
-      console.error("Restore failed:", err);
-    }
-  };
-
   const handleAdd = () => {
-    setSelectedId(null);
+    setSelectedRow(null);
     setModalOpen(true);
   };
   const handleRowClick = (row) => {
-    setSelectedId(row.id);
+    setSelectedRow(row);
     setModalOpen(true);
   };
   const handleClose = () => {
     setModalOpen(false);
-    setSelectedId(null);
+    setSelectedRow(null);
   };
+
   const handleArchiveClick = (row) => {
     setToArchive(row);
     setConfirmOpen(true);
   };
   const handleConfirmArchive = async () => {
     try {
-      await archiveRole(toArchive.id).unwrap();
-      window.__snackbar__?.enqueueSnackbar("Role archived successfully.", {
+      await archiveGuideline(toArchive.id).unwrap();
+      window.__snackbar__?.enqueueSnackbar("Guideline archived successfully.", {
         variant: "success",
       });
       setConfirmOpen(false);
@@ -118,45 +190,35 @@ const Roles = () => {
     }
   };
 
-  const handleViewPerms = (e, row) => {
-    e.stopPropagation();
-    setSelectedRole(row);
-    setPermsOpen(true);
+  const handleRestoreClick = (row) => {
+    setToRestore(row);
+    setRestoreConfirmOpen(true);
   };
-  const handleClosePerms = () => {
-    setPermsOpen(false);
-    setSelectedRole(null);
+  const handleConfirmRestore = async () => {
+    try {
+      await archiveGuideline(toRestore.id).unwrap();
+      window.__snackbar__?.enqueueSnackbar("Guideline restored successfully.", {
+        variant: "success",
+      });
+      setRestoreConfirmOpen(false);
+      setToRestore(null);
+      resetAfterRestore();
+    } catch (err) {
+      console.error("Restore failed:", err);
+    }
   };
-
-  const COLUMNS = [
-    { key: "id", label: "ID", sortable: true },
-    { key: "name", label: "Name", sortable: true },
-    {
-      key: "access_permission",
-      label: "Permissions",
-      sortable: false,
-      render: (val, row) => (
-        <IconButton
-          size="small"
-          onClick={(e) => handleViewPerms(e, row)}
-          title="View permissions"
-          sx={{ ml: 0.05, color: "#F37021" }}>
-          <VisibilityIcon fontSize="small" />
-        </IconButton>
-      ),
-    },
-  ];
 
   return (
     <>
       <PageContainer
-        title="Roles"
-        titleIcon={<PeopleAltIcon />}
+        title="Guidelines"
+        titleIcon={<DescriptionIcon />}
         isEmpty={!isFetching && (tableData.length === 0 || is404)}
         titleAction={
           <UniversalButton
-            label="Add Role"
-            tooltip="Click this button to add a new role"
+            label="Add Guideline"
+            shortLabel="Add Gl.."
+            tooltip="Click this button to add a new guideline"
             icon={<AddIcon />}
             onClick={handleAdd}
           />
@@ -176,7 +238,7 @@ const Roles = () => {
             <TableSearchField
               value={search}
               onChange={handleSearch}
-              placeholder="Search roles..."
+              placeholder="Search guidelines..."
             />
           </>
         }
@@ -190,7 +252,7 @@ const Roles = () => {
           />
         }>
         <UniversalTable
-          columns={COLUMNS}
+          columns={buildColumns(showArchived, handleViewFile)}
           data={tableData}
           isLoading={isFetching}
           sortBy={sortBy}
@@ -207,16 +269,20 @@ const Roles = () => {
         />
       </PageContainer>
 
-      <RolesModal
+      <GuidelinesModal
         open={modalOpen}
         onClose={handleClose}
-        selectedId={selectedId}
+        selectedRow={selectedRow}
       />
 
-      <PermissionsDialog
-        open={permsOpen}
-        onClose={handleClosePerms}
-        role={selectedRole}
+      <GuidelineFileDialog
+        open={fileDialogOpen}
+        onClose={() => {
+          setFileDialogOpen(false);
+          setFileToView(null);
+        }}
+        fileUrl={fileToView?.file_url}
+        filename={fileToView?.filename}
       />
 
       <ConfirmDialog
@@ -227,8 +293,8 @@ const Roles = () => {
         }}
         onConfirm={handleConfirmArchive}
         isLoading={isArchiving}
-        title="Archive Role"
-        message={`Are you sure you want to archive "${toArchive?.name}"? This action will set the role as inactive.`}
+        title="Archive Guideline"
+        message={`Are you sure you want to archive guideline "${toArchive?.title}"? This action will set the guideline as inactive.`}
       />
 
       <ConfirmDialog
@@ -239,11 +305,11 @@ const Roles = () => {
         }}
         onConfirm={handleConfirmRestore}
         isLoading={isArchiving}
-        title="Restore Role"
-        message={`Are you sure you want to restore "${toRestore?.name}"? This will set it back to active.`}
+        title="Restore Guideline"
+        message={`Are you sure you want to restore guideline "${toRestore?.title}"? This will set it back to active.`}
       />
     </>
   );
 };
 
-export default Roles;
+export default Guidelines;

@@ -83,6 +83,23 @@ const qaChecklistApi = apiSlice.injectEndpoints({
       }),
     }),
 
+    exportAreaMonthlyReport: builder.query({
+      query: ({ area_id, month, year }) => ({
+        url: "/export/region/area/store_grades/monthly_report",
+        params: { area_id, month, year },
+        responseHandler: async (response) => {
+          if (!response.ok) return { blob: null };
+          const blob = await response.blob();
+          const disposition = response.headers.get("content-disposition");
+          const match = disposition?.match(/filename="?([^"]+)"?/);
+          const filename = match?.[1] ?? null;
+          return { blob, filename };
+        },
+        cache: "no-cache",
+      }),
+      keepUnusedDataFor: 0,
+    }),
+
     answerChecklist: builder.mutation({
       query: (body) => ({
         url: "/quality_assurance",
@@ -110,6 +127,16 @@ const qaChecklistApi = apiSlice.injectEndpoints({
     autoSkip: builder.mutation({
       query: (body) => ({
         url: "/quality_assurance/auto_skip",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error) =>
+        error ? [] : ["QaChecklist", "Badge"],
+    }),
+
+    skipWeek: builder.mutation({
+      query: (body) => ({
+        url: "/quality_assurance/skip_week",
         method: "POST",
         body,
       }),
@@ -164,9 +191,12 @@ export const {
   useViewSignatureQuery,
   useExportAreaStoresQuery,
   useExportAreaPerWeekQuery,
+  useExportAreaMonthlyReportQuery,
+  useLazyExportAreaMonthlyReportQuery,
   useAnswerChecklistMutation,
   useReSurveyMutation,
   useAutoSkipMutation,
+  useSkipWeekMutation,
   useDownloadAttachmentsMutation,
   useAddSignatureMutation,
   useForApprovalMutation,

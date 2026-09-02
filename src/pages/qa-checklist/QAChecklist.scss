@@ -85,7 +85,34 @@
   &__actions-right {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     flex-shrink: 0;
+
+    @media (max-width: 768px) {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  &__export-btn {
+    font-family: "Poppins", sans-serif !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    text-transform: none !important;
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-radius: 8px !important;
+    padding: 5px 14px !important;
+    box-shadow: none !important;
+    transition: background 0.2s !important;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.35) !important;
+    }
+
+    .MuiSvgIcon-root {
+      font-size: 1rem;
+    }
   }
 
   &__row-actions {
