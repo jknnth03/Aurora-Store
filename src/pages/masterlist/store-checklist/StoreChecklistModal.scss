@@ -298,6 +298,14 @@
         color: $status-error !important;
       }
     }
+
+    &--loading {
+      opacity: 0.7;
+
+      .scm__ac-box {
+        cursor: progress;
+      }
+    }
   }
 
   &__ac-box {
@@ -398,6 +406,8 @@
   &__ac-option {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     padding: 10px 14px;
     font-size: 0.8rem;
     font-family: "Poppins", sans-serif;
@@ -418,6 +428,24 @@
       }
     }
 
+    &--disabled {
+      color: $text-muted;
+      opacity: 0.55;
+      cursor: not-allowed;
+
+      &:hover {
+        background: transparent;
+      }
+
+      [data-theme="dark"] & {
+        color: rgba(255, 255, 255, 0.35);
+
+        &:hover {
+          background: transparent;
+        }
+      }
+    }
+
     [data-theme="dark"] & {
       color: rgba(255, 255, 255, 0.85);
 
@@ -425,6 +453,15 @@
         background: rgba(255, 255, 255, 0.05);
       }
     }
+  }
+
+  &__ac-option-tag {
+    flex-shrink: 0;
+    font-size: 0.62rem;
+    font-weight: 500;
+    font-style: italic;
+    color: $text-muted;
+    font-family: "Poppins", sans-serif;
   }
 
   &__ac-empty {

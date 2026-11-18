@@ -7,6 +7,7 @@ import { useGetSurveyApprovalsQuery } from "../../features/api/survey-approval/s
 import SurveyApprovalModal from "./SurveyApprovalModal";
 import "./SurveyApproval.scss";
 import { useChipColors } from "../../components/accountmenu/ChipColorPickerDialog";
+import NoApprovalAnimation from "../../assets/No-Approval.json";
 
 const currentDate = new Date();
 
@@ -26,6 +27,13 @@ const MONTHS = [
 ];
 
 const WEEK_LABELS = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
+
+const EMPTY_STATE = {
+  animationData: NoApprovalAnimation,
+  animationSize: 400,
+  title: "No approval requests are available at the moment",
+  message: "Please check back later",
+};
 
 const buildColumns = () => [
   {
@@ -166,6 +174,7 @@ const SurveyApproval = () => {
             sortOrder={sortOrder}
             onSort={handleSort}
             onRowClick={handleRowClick}
+            emptyState={EMPTY_STATE}
           />
         </div>
       </PageContainer>

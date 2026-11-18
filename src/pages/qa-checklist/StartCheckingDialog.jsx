@@ -11,9 +11,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import ChecklistIcon from "@mui/icons-material/Checklist";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import SearchIcon from "@mui/icons-material/Search";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
@@ -28,7 +25,6 @@ import { useGetChecklistByIdQuery } from "../../features/api/masterlist/checklis
 import { useGetGuidelinesQuery } from "../../features/api/masterlist/guidelinesApi";
 import { useGetScoreRatingsQuery } from "../../features/api/masterlist/scoreRatingApi";
 import "./StartCheckingDialog.scss";
-import { useGetUsersQuery } from "../../features/api/usermanagement/userApi";
 
 const COMPLIANCE_COLORS = ["green", "orange", "red"];
 
@@ -56,41 +52,60 @@ const SkeletonBlock = () => (
   </div>
 );
 
-const AttachmentCell = ({ value, onChange, disabled, viewUrl, viewName }) => {
+const normalizeAttachments = (raw) => {
+  const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  return list
+    .map((att) => ({
+      url: att?.file_url ?? att?.url ?? att?.path ?? null,
+      name: att?.original_name ?? att?.file_name ?? att?.name ?? null,
+    }))
+    .filter((att) => att.url);
+};
+
+const AttachmentCell = ({ value, onChange, disabled, viewItems }) => {
   const fileRef = useRef(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState(null);
+
+  const files = Array.isArray(value) ? value : [];
+  const items = Array.isArray(viewItems) ? viewItems : [];
 
   const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) onChange(file);
+    const picked = Array.from(e.target.files ?? []);
+    if (picked.length > 0) onChange([...files, ...picked]);
     e.target.value = "";
   };
 
+  const handleRemove = (idx) => {
+    onChange(files.filter((_, i) => i !== idx));
+  };
+
   if (disabled) {
-    if (viewUrl) {
+    if (items.length > 0) {
       return (
         <>
           <div className="scd__attach-cell">
-            <div className="scd__attach-preview">
-              <Tooltip title={viewName || "View attachment"} placement="top">
-                <span className="scd__attach-name scd__attach-name--view">
-                  {viewName || "attachment"}
-                </span>
-              </Tooltip>
-              <Tooltip title="View file" placement="top">
-                <IconButton
-                  size="small"
-                  className="scd__attach-view-btn"
-                  onClick={() => setPreviewOpen(true)}>
-                  <VisibilityIcon sx={{ fontSize: 14 }} />
-                </IconButton>
-              </Tooltip>
-            </div>
+            {items.map((item, idx) => (
+              <div className="scd__attach-preview" key={`${item.url}-${idx}`}>
+                <Tooltip title={item.name || "View attachment"} placement="top">
+                  <span className="scd__attach-name scd__attach-name--view">
+                    {item.name || "attachment"}
+                  </span>
+                </Tooltip>
+                <Tooltip title="View file" placement="top">
+                  <IconButton
+                    size="small"
+                    className="scd__attach-view-btn"
+                    onClick={() => setPreviewItem(item)}>
+                    <VisibilityIcon sx={{ fontSize: 14 }} />
+                  </IconButton>
+                </Tooltip>
+              </div>
+            ))}
           </div>
           <AttachmentViewerDialog
-            open={previewOpen}
-            onClose={() => setPreviewOpen(false)}
-            attachment={{ url: viewUrl, name: viewName }}
+            open={!!previewItem}
+            onClose={() => setPreviewItem(null)}
+            attachment={previewItem}
           />
         </>
       );
@@ -106,180 +121,36 @@ const AttachmentCell = ({ value, onChange, disabled, viewUrl, viewName }) => {
     <div className="scd__attach-cell">
       <input
         type="file"
+        multiple
         ref={fileRef}
         style={{ display: "none" }}
-        accept="image/*,application/pdf"
+        accept="image/*"
         onChange={handleFileChange}
       />
-      {value ? (
-        <div className="scd__attach-preview">
-          <Tooltip title={value.name} placement="top">
-            <span className="scd__attach-name">{value.name}</span>
+      {files.map((file, idx) => (
+        <div className="scd__attach-preview" key={`${file.name}-${idx}`}>
+          <Tooltip title={file.name} placement="top">
+            <span className="scd__attach-name">{file.name}</span>
           </Tooltip>
           <Tooltip title="Remove">
             <IconButton
               size="small"
               className="scd__attach-remove"
-              onClick={() => onChange(null)}>
+              onClick={() => handleRemove(idx)}>
               <DeleteOutlineIcon sx={{ fontSize: 13 }} />
             </IconButton>
           </Tooltip>
         </div>
-      ) : (
-        <Tooltip title="Attach file" placement="top">
-          <button
-            type="button"
-            className="scd__attach-btn"
-            onClick={() => fileRef.current?.click()}>
-            <AttachFileIcon sx={{ fontSize: 14 }} />
-            <span>No file</span>
-          </button>
-        </Tooltip>
-      )}
-    </div>
-  );
-};
-
-const StaffAutocomplete = ({
-  value,
-  onChange,
-  disabled,
-  users,
-  isFetchingUsers,
-  onOpen,
-  hasError,
-}) => {
-  const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-
-  const getLabel = (u) => u?.full_name ?? u?.name ?? u?.username ?? "";
-  const selected = Array.isArray(value) ? value : [];
-
-  const options = search
-    ? users.filter((u) =>
-        getLabel(u).toLowerCase().includes(search.toLowerCase()),
-      )
-    : users;
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
-        setOpen(false);
-        setSearch("");
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleOpen = () => {
-    if (disabled) return;
-    setOpen((p) => !p);
-    if (!open) onOpen?.();
-  };
-
-  const handleToggle = (user) => {
-    const exists = selected.some((s) => s.id === user.id);
-    const next = exists
-      ? selected.filter((s) => s.id !== user.id)
-      : [...selected, user];
-    onChange(next);
-  };
-
-  const handleRemove = (userId) => {
-    onChange(selected.filter((s) => s.id !== userId));
-  };
-
-  if (disabled) {
-    return (
-      <div className="scd__ac scd__ac--disabled">
-        <div className="scd__ac-box scd__ac-box--multi">
-          {selected.length > 0 ? (
-            <div className="scd__ac-tags">
-              {selected.map((u) => (
-                <span key={u.id} className="scd__ac-tag">
-                  {getLabel(u)}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <span className="scd__ac-value">—</span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`scd__ac${hasError ? " scd__ac--error" : ""}`}
-      ref={wrapRef}>
-      <div className="scd__ac-box scd__ac-box--multi" onClick={handleOpen}>
-        <div className="scd__ac-tags-wrap">
-          {selected.length > 0 ? (
-            <div className="scd__ac-tags">
-              {selected.map((u) => (
-                <span key={u.id} className="scd__ac-tag">
-                  {getLabel(u)}
-                  <button
-                    type="button"
-                    className="scd__ac-tag-remove"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemove(u.id);
-                    }}>
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <span className="scd__ac-placeholder">Select staff on duty...</span>
-          )}
-        </div>
-        <span className="scd__ac-arrow">
-          {open ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />}
-        </span>
-      </div>
-      {open && (
-        <div className="scd__ac-dropdown">
-          <div className="scd__ac-search-wrap scd__ac-search-wrap--inside">
-            <SearchIcon sx={{ fontSize: "0.9rem", flexShrink: 0 }} />
-            <input
-              autoFocus
-              type="text"
-              placeholder="Search staff..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="scd__ac-input"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-          <div className="scd__ac-options">
-            {isFetchingUsers ? (
-              <p className="scd__ac-empty">Loading...</p>
-            ) : options.length === 0 ? (
-              <p className="scd__ac-empty">No staff found</p>
-            ) : (
-              options.map((u) => {
-                const isSelected = selected.some((s) => s.id === u.id);
-                return (
-                  <div
-                    key={u.id}
-                    className={`scd__ac-option${isSelected ? " scd__ac-option--selected" : ""}`}
-                    onClick={() => handleToggle(u)}>
-                    <span className="scd__ac-option-check">
-                      {isSelected ? "✓" : ""}
-                    </span>
-                    {getLabel(u)}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
+      ))}
+      <Tooltip title="Attach file" placement="top">
+        <button
+          type="button"
+          className="scd__attach-btn"
+          onClick={() => fileRef.current?.click()}>
+          <AttachFileIcon sx={{ fontSize: 14 }} />
+          <span>{files.length > 0 ? "Add more" : "No file"}</span>
+        </button>
+      </Tooltip>
     </div>
   );
 };
@@ -311,12 +182,6 @@ const StartCheckingDialog = ({
   const [reSurvey, { isLoading: isSubmittingReSurvey }] = useReSurveyMutation();
   const isSubmitting = isSubmittingAnswer || isSubmittingReSurvey;
 
-  const [staffDropdownOpen, setStaffDropdownOpen] = useState(false);
-  const { data: usersData, isFetching: isFetchingUsers } = useGetUsersQuery(
-    { status: "active", pagination: "none", role_id: 6 },
-    { skip: !staffDropdownOpen },
-  );
-
   const [guidelineOpen, setGuidelineOpen] = useState(false);
 
   const { data: guidelinesData, isFetching: isFetchingGuidelines } =
@@ -341,8 +206,6 @@ const StartCheckingDialog = ({
 
   const isPass = (compliance) =>
     compliance !== "" && compliance === maxScoreOption;
-  const needsRemarks = (compliance) =>
-    compliance !== "" && compliance !== maxScoreOption;
 
   const storeData = data?.data ?? null;
   const storeChecklist = storeData?.store_checklist?.[0] ?? null;
@@ -353,14 +216,13 @@ const StartCheckingDialog = ({
   const sections = checklistData?.data?.sections ?? [];
 
   const [answers, setAnswers] = useState({});
-  const [setAllSelections, setSetAllSelections] = useState({});
   const [others, setOthers] = useState({
     start_time: "",
     end_time: "",
     store_visit: "",
     expired: "",
     condemned: "",
-    staff_on_duty: [],
+    staff_on_duty: "",
     good_points: "",
     notes: "",
   });
@@ -385,24 +247,30 @@ const StartCheckingDialog = ({
       snapshot?.sections?.forEach((section) => {
         section?.questions?.forEach((q) => {
           if (q.response) {
-            const att = q.response.attachment ?? null;
+            const rawAttachments =
+              q.response.attachments ?? q.response.attachment ?? null;
             rebuiltAnswers[q.id] = {
               compliance: q.response.answer_text ?? q.response.answer ?? "",
               remarks: q.response.remarks ?? "",
-              attachment: null,
-              attachmentUrl: att?.file_url ?? att?.url ?? att?.path ?? null,
-              attachmentName:
-                att?.original_name ?? att?.file_name ?? att?.name ?? null,
+              attachments: [],
+              attachmentItems: normalizeAttachments(rawAttachments),
             };
           }
         });
       });
       setAnswers(rebuiltAnswers);
 
-      const rawDuties = meta?.store_duties ?? [];
-      const staffArray = Array.isArray(rawDuties)
+      const rawDuties = meta?.staff_on_duty ?? meta?.store_duties ?? "";
+      const staffText = Array.isArray(rawDuties)
         ? rawDuties
-        : [rawDuties].filter(Boolean);
+            .map((u) =>
+              typeof u === "string"
+                ? u
+                : (u?.full_name ?? u?.name ?? u?.username ?? ""),
+            )
+            .filter(Boolean)
+            .join(", ")
+        : String(rawDuties ?? "");
 
       setOthers({
         start_time: viewData?.start_time ?? "",
@@ -417,7 +285,7 @@ const StartCheckingDialog = ({
           meta?.condemned === "1" || meta?.condemned === 1
             ? "with condemned items"
             : "without condemned items",
-        staff_on_duty: staffArray,
+        staff_on_duty: staffText,
         good_points: meta?.good_points ?? "",
         notes: meta?.notes ?? "",
       });
@@ -431,51 +299,43 @@ const StartCheckingDialog = ({
     return () => clearInterval(intervalRef.current);
   }, [open, isViewMode, viewData]);
 
-  const users = Array.isArray(usersData?.data?.data)
-    ? usersData.data.data
-    : Array.isArray(usersData?.data)
-      ? usersData.data
-      : Array.isArray(usersData?.result)
-        ? usersData.result
-        : [];
-
   const setCompliance = (qId, val) => {
+    const ratingId =
+      scoreOptions.find((opt) => opt.option_text === val)?.id ?? "";
     setAnswers((prev) => ({
       ...prev,
       [qId]: {
         ...prev[qId],
         compliance: val,
-        ...(isPass(val) ? { remarks: "", attachment: null } : {}),
+        ratingId,
+        ...(isPass(val) ? { remarks: "", attachments: [] } : {}),
       },
     }));
     setErrors((prev) => {
       const next = { ...prev };
       delete next[`compliance_${qId}`];
-      delete next[`remarks_${qId}`];
       return next;
     });
   };
 
   const handleSetAll = (section, optionText) => {
-    setSetAllSelections((prev) => ({ ...prev, [section.id]: optionText }));
     section.questions.forEach((q) => setCompliance(q.id, optionText));
   };
 
+  // "Set All To" is only checked when every item in the section has that answer.
+  // If any item is changed to something different, it becomes unselected automatically.
+  const isSetAllChecked = (section, optionText) =>
+    section.questions.length > 0 &&
+    section.questions.every((q) => answers[q.id]?.compliance === optionText);
+
   const setRemarks = (qId, val) => {
     setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], remarks: val } }));
-    if (val.trim()) {
-      setErrors((prev) => {
-        const n = { ...prev };
-        delete n[`remarks_${qId}`];
-        return n;
-      });
-    }
   };
 
-  const setAttachment = (qId, file) =>
+  const setAttachments = (qId, files) =>
     setAnswers((prev) => ({
       ...prev,
-      [qId]: { ...prev[qId], attachment: file },
+      [qId]: { ...prev[qId], attachments: files },
     }));
 
   const validate = () => {
@@ -486,21 +346,14 @@ const StartCheckingDialog = ({
         const ans = answers[q.id] ?? {};
         const compliance = ans.compliance ?? "";
         if (!compliance) newErrors[`compliance_${q.id}`] = "Required";
-        if (needsRemarks(compliance) && !ans.remarks?.trim())
-          newErrors[`remarks_${q.id}`] = "Required";
       });
     });
 
     if (!others.store_visit) newErrors["store_visit"] = "Required";
     if (!others.expired) newErrors["expired"] = "Required";
     if (!others.condemned) newErrors["condemned"] = "Required";
-    if (
-      !Array.isArray(others.staff_on_duty) ||
-      others.staff_on_duty.length === 0
-    )
-      newErrors["staff_on_duty"] = "Required";
+    if (!others.staff_on_duty?.trim()) newErrors["staff_on_duty"] = "Required";
     if (!others.good_points?.trim()) newErrors["good_points"] = "Required";
-    if (!others.notes?.trim()) newErrors["notes"] = "Required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -508,7 +361,6 @@ const StartCheckingDialog = ({
 
   const handleClose = () => {
     setAnswers({});
-    setSetAllSelections({});
     setErrors({});
     setOthers({
       start_time: "",
@@ -516,7 +368,7 @@ const StartCheckingDialog = ({
       store_visit: "",
       expired: "",
       condemned: "",
-      staff_on_duty: [],
+      staff_on_duty: "",
       good_points: "",
       notes: "",
     });
@@ -555,14 +407,15 @@ const StartCheckingDialog = ({
         );
         formData.append(`responses[${rIdx}][question_text]`, q.question_text);
         formData.append(`responses[${rIdx}][question_type]`, q.question_type);
-        formData.append(`responses[${rIdx}][answer]`, ans.compliance ?? "");
+        formData.append(`responses[${rIdx}][answer]`, ans.ratingId ?? "");
         formData.append(
           `responses[${rIdx}][answer_text]`,
           ans.compliance ?? "",
         );
         formData.append(`responses[${rIdx}][remarks]`, ans.remarks ?? "");
-        if (ans.attachment)
-          formData.append(`responses[${rIdx}][attachment]`, ans.attachment);
+        (ans.attachments ?? []).forEach((file) => {
+          formData.append(`responses[${rIdx}][attachment][]`, file);
+        });
         rIdx++;
       });
     });
@@ -575,13 +428,7 @@ const StartCheckingDialog = ({
     );
     formData.append("good_points", others.good_points ?? "");
     formData.append("notes", others.notes ?? "");
-
-    const staffList = Array.isArray(others.staff_on_duty)
-      ? others.staff_on_duty
-      : [];
-    staffList.forEach((staff, idx) => {
-      formData.append(`store_duty_id[${idx}]`, staff.id);
-    });
+    formData.append("store_duty_id", others.staff_on_duty?.trim() ?? "");
 
     return formData;
   };
@@ -693,13 +540,6 @@ const StartCheckingDialog = ({
                                 </th>
                                 <th className="scd__th scd__th--remarks">
                                   Remarks
-                                  {!isViewMode && (
-                                    <span className="scd__th-hint">
-                                      {" "}
-                                      (required unless{" "}
-                                      {maxScoreOption ?? "highest score"})
-                                    </span>
-                                  )}
                                 </th>
                                 <th className="scd__th scd__th--attachment">
                                   Attachment
@@ -723,10 +563,10 @@ const StartCheckingDialog = ({
                                               type="radio"
                                               name={`setall_${section.id}`}
                                               value={opt.option_text}
-                                              checked={
-                                                setAllSelections[section.id] ===
-                                                opt.option_text
-                                              }
+                                              checked={isSetAllChecked(
+                                                section,
+                                                opt.option_text,
+                                              )}
                                               onChange={() =>
                                                 handleSetAll(
                                                   section,
@@ -759,11 +599,8 @@ const StartCheckingDialog = ({
                                 const compliance =
                                   answers[q.id]?.compliance ?? "";
                                 const pass = isPass(compliance);
-                                const remarksRequired =
-                                  needsRemarks(compliance);
                                 const complianceError =
                                   errors[`compliance_${q.id}`];
-                                const remarksError = errors[`remarks_${q.id}`];
 
                                 return (
                                   <tr key={q.id} className="scd__tr">
@@ -811,13 +648,9 @@ const StartCheckingDialog = ({
                                     </td>
                                     <td className="scd__td scd__td--remarks">
                                       <textarea
-                                        className={`scd__textarea-input${isViewMode || pass ? " scd__textarea-input--readonly" : ""}${remarksError ? " scd__textarea-input--error" : ""}`}
+                                        className={`scd__textarea-input${isViewMode || pass ? " scd__textarea-input--readonly" : ""}`}
                                         placeholder={
-                                          pass
-                                            ? "N/A"
-                                            : remarksRequired
-                                              ? "Required — enter your remarks"
-                                              : "Enter your response"
+                                          pass ? "N/A" : "Enter your response"
                                         }
                                         value={answers[q.id]?.remarks ?? ""}
                                         onChange={(e) =>
@@ -828,27 +661,17 @@ const StartCheckingDialog = ({
                                         rows={2}
                                         readOnly={isViewMode || pass}
                                       />
-                                      {remarksError && (
-                                        <span className="scd__field-error">
-                                          {remarksError}
-                                        </span>
-                                      )}
                                     </td>
                                     <td className="scd__td scd__td--attachment">
                                       <AttachmentCell
-                                        value={
-                                          answers[q.id]?.attachment ?? null
-                                        }
-                                        onChange={(file) =>
+                                        value={answers[q.id]?.attachments ?? []}
+                                        onChange={(files) =>
                                           !isViewMode &&
-                                          setAttachment(q.id, file)
+                                          setAttachments(q.id, files)
                                         }
                                         disabled={isViewMode || pass}
-                                        viewUrl={
-                                          answers[q.id]?.attachmentUrl ?? null
-                                        }
-                                        viewName={
-                                          answers[q.id]?.attachmentName ?? null
+                                        viewItems={
+                                          answers[q.id]?.attachmentItems ?? []
                                         }
                                       />
                                     </td>
@@ -1023,28 +846,26 @@ const StartCheckingDialog = ({
                     <span className="scd__field-label">
                       Staff on Duty{!isViewMode && <RequiredMark />}
                     </span>
-                    <StaffAutocomplete
+                    <textarea
+                      className={`scd__textarea-input${isViewMode ? " scd__textarea-input--readonly" : ""}${errors.staff_on_duty ? " scd__textarea-input--error" : ""}`}
+                      placeholder="Enter staff on duty"
                       value={others.staff_on_duty}
-                      onChange={(staffUsers) => {
+                      onChange={(e) => {
                         if (!isViewMode) {
                           setOthers((p) => ({
                             ...p,
-                            staff_on_duty: staffUsers,
+                            staff_on_duty: e.target.value,
                           }));
-                          if (staffUsers.length > 0) {
+                          if (e.target.value.trim())
                             setErrors((p) => {
                               const n = { ...p };
                               delete n.staff_on_duty;
                               return n;
                             });
-                          }
                         }
                       }}
-                      disabled={isViewMode}
-                      users={users}
-                      isFetchingUsers={isFetchingUsers}
-                      onOpen={() => setStaffDropdownOpen(true)}
-                      hasError={!!errors.staff_on_duty}
+                      rows={2}
+                      readOnly={isViewMode}
                     />
                     {errors.staff_on_duty && (
                       <span className="scd__field-error">
@@ -1086,30 +907,19 @@ const StartCheckingDialog = ({
                   </div>
 
                   <div className="scd__field">
-                    <span className="scd__field-label">
-                      Notes{!isViewMode && <RequiredMark />}
-                    </span>
+                    <span className="scd__field-label">Notes</span>
                     <textarea
-                      className={`scd__textarea-input${isViewMode ? " scd__textarea-input--readonly" : ""}${errors.notes ? " scd__textarea-input--error" : ""}`}
+                      className={`scd__textarea-input${isViewMode ? " scd__textarea-input--readonly" : ""}`}
                       placeholder="Enter additional notes"
                       value={others.notes}
                       onChange={(e) => {
                         if (!isViewMode) {
                           setOthers((p) => ({ ...p, notes: e.target.value }));
-                          if (e.target.value.trim())
-                            setErrors((p) => {
-                              const n = { ...p };
-                              delete n.notes;
-                              return n;
-                            });
                         }
                       }}
                       rows={3}
                       readOnly={isViewMode}
                     />
-                    {errors.notes && (
-                      <span className="scd__field-error">{errors.notes}</span>
-                    )}
                   </div>
                 </div>
               </div>

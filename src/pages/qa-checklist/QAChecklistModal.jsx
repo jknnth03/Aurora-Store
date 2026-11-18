@@ -78,6 +78,11 @@ export const StatusChip = ({ status }) => {
     pending: { label: "Pending", cls: "chip--pending" },
     overdue: { label: "Overdue", cls: "chip--overdue" },
     completed: { label: "Done", cls: "chip--done" },
+    "for signature": {
+      label: "For Signature",
+      cls: "chip--signature",
+      style: { backgroundColor: "#e3f2fd", color: "#1565c0" },
+    },
     approved: { label: "Pending", cls: "chip--pending" },
     "for approval": { label: "Waiting for Approval", cls: "chip--pending" },
     rejected: { label: "Rejected", cls: "chip--overdue" },
@@ -90,6 +95,7 @@ export const StatusChip = ({ status }) => {
       label: "Checklist Not Yet Created",
       cls: "chip--not-created",
     },
+    upcoming: { label: "Upcoming", cls: "chip--not-created" },
   };
 
   const key = status?.toLowerCase?.() ?? "";
@@ -105,7 +111,9 @@ export const StatusChip = ({ status }) => {
 
   return (
     <Tooltip title={isTruncated ? config.label : ""} placement="top" arrow>
-      <span className={`qa-cm__chip ${config.cls}`}>{displayLabel}</span>
+      <span className={`qa-cm__chip ${config.cls}`} style={config.style}>
+        {displayLabel}
+      </span>
     </Tooltip>
   );
 };
@@ -115,6 +123,15 @@ const isAutoGraded = (entry) => {
   const grade = parseFloat(entry.weekly_grade);
   const hasNoRecord = !entry.start_time && !entry.end_time;
   return grade === 100 && hasNoRecord;
+};
+
+const getDisplayStatus = (entry) => {
+  const status = entry?.status?.toLowerCase?.();
+  const isDone = status === "completed" || status === "done";
+  if (isDone && !isAutoGraded(entry) && !entry?.attachment_path) {
+    return "for signature";
+  }
+  return entry?.status;
 };
 
 const getApproverRemarks = (entry) => {
@@ -183,6 +200,8 @@ const RowActionMenu = ({
   onShowReport,
   onSkip,
   isPreviousWeekDone,
+  isLocked,
+  lockMessage,
 }) => {
   const [anchor, setAnchor] = useState(null);
   const status = entry?.status?.toLowerCase?.();
@@ -202,6 +221,23 @@ const RowActionMenu = ({
 
   if (!isDone && !isPending && !isOverdue && !isRejected) {
     return <span className="qa-cm__no-action"></span>;
+  }
+
+  if (isLocked && !isDone) {
+    return (
+      <div className="qa-cm__actions-cell">
+        <Tooltip title={lockMessage} placement="top" arrow>
+          <span>
+            <IconButton
+              size="small"
+              className="qa-cm__icon-btn qa-cm__icon-btn--dots"
+              disabled>
+              <MoreHorizIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+      </div>
+    );
   }
 
   return (
@@ -417,6 +453,24 @@ const QAChecklistModal = ({
     },
   );
 
+  const now = new Date();
+  const allowableDaysNum =
+    allowableDays != null && allowableDays !== ""
+      ? Number(allowableDays)
+      : null;
+  const isCurrentMonthView =
+    Number(year) === now.getFullYear() && Number(month) === now.getMonth() + 1;
+  const isFutureMonthView =
+    Number(year) > now.getFullYear() ||
+    (Number(year) === now.getFullYear() && Number(month) > now.getMonth() + 1);
+  const isWithinGracePeriod =
+    allowableDaysNum != null && now.getDate() <= allowableDaysNum;
+  const isActionsLocked =
+    isFutureMonthView || (isCurrentMonthView && isWithinGracePeriod);
+  const lockMessage = isFutureMonthView
+    ? "Not available yet. This month has not started."
+    : `Not available yet. Submissions until day ${allowableDaysNum} of the month still go to the previous month.`;
+
   const weeklyMap = {};
   (data?.data?.store_checklist?.[0]?.weekly_record ?? []).forEach((entry) => {
     if (entry.week) weeklyMap[entry.week] = entry;
@@ -443,7 +497,7 @@ const QAChecklistModal = ({
     let isPreviousWeekDone = true;
     if (idx > 0) {
       const prevEntry = rows[idx - 1].entry;
-      const prevStatus = prevEntry?.status?.toLowerCase?.() ?? "";
+      const prevStatus = getDisplayStatus(prevEntry)?.toLowerCase?.() ?? "";
       isPreviousWeekDone =
         prevStatus === "done" ||
         prevStatus === "completed" ||
@@ -481,17 +535,21 @@ const QAChecklistModal = ({
 
   const handleCloseSnackbar = () => setSnackbar((p) => ({ ...p, open: false }));
 
-  const handleSignatureComplete = () => {
-    refetch();
-    if (reportEntry) {
-      const freshWeeklyRecord =
-        data?.data?.store_checklist?.[0]?.weekly_record ?? [];
-      const freshEntry = freshWeeklyRecord.find(
-        (r) => r.week === reportEntry.week,
-      );
-      if (freshEntry) {
-        setReportEntry(freshEntry);
+  const handleSignatureComplete = async () => {
+    try {
+      const result = await refetch().unwrap();
+      if (reportEntry) {
+        const freshWeeklyRecord =
+          result?.data?.store_checklist?.[0]?.weekly_record ?? [];
+        const freshEntry = freshWeeklyRecord.find(
+          (r) => r.week === reportEntry.week,
+        );
+        if (freshEntry) {
+          setReportEntry(freshEntry);
+        }
       }
+    } catch (err) {
+      console.error("Failed to refresh after signature:", err);
     }
   };
 
@@ -639,7 +697,7 @@ const QAChecklistModal = ({
                         <td className="qa-cm__td">{label}</td>
                         <td className="qa-cm__td">{formatDate(entry)}</td>
                         <td className="qa-cm__td">
-                          <StatusChip status={entry.status} />
+                          <StatusChip status={getDisplayStatus(entry)} />
                         </td>
                         {hasAnyRemarks && (
                           <td className="qa-cm__td">
@@ -664,6 +722,8 @@ const QAChecklistModal = ({
                             onShowReport={handleShowReport}
                             onSkip={setSkipEntry}
                             isPreviousWeekDone={isPreviousWeekDone}
+                            isLocked={isActionsLocked}
+                            lockMessage={lockMessage}
                           />
                         </td>
                       </tr>

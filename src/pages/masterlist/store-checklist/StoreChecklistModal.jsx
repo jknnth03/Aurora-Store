@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -18,6 +18,7 @@ import UniversalButton, {
   BackButton,
 } from "../../../reusable-components/universalbuttons/UniversalButtons";
 import {
+  useGetStoreChecklistsQuery,
   useGetStoreChecklistByIdQuery,
   useCreateStoreChecklistMutation,
   useUpdateStoreChecklistMutation,
@@ -25,6 +26,10 @@ import {
 import { useGetStoresQuery } from "../../../features/api/masterlist/storesApi";
 import { useGetChecklistsQuery } from "../../../features/api/masterlist/checklistApi";
 import "./StoreChecklistModal.scss";
+
+// When true, checklists that are already assigned to any store are disabled in the dropdown.
+// Set to false if a checklist should still be reusable across different stores.
+const DISABLE_USED_CHECKLISTS = true;
 
 const addSchema = yup.object({
   store_id: yup.string().required("Store is required"),
@@ -54,6 +59,8 @@ const StoreAutocomplete = ({
   error,
   disabled = false,
   displayValue,
+  disabledIds,
+  loading = false,
 }) => {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -103,13 +110,19 @@ const StoreAutocomplete = ({
     setOpen(false);
   };
 
+  const isOpen = open && !loading;
+
   return (
-    <div className={`scm__ac${error ? " scm__ac--error" : ""}`} ref={wrapRef}>
+    <div
+      className={`scm__ac${error ? " scm__ac--error" : ""}${loading ? " scm__ac--loading" : ""}`}
+      ref={wrapRef}>
       <label className="scm__label">
         Store <span className="scm__required">*</span>
       </label>
-      <div className="scm__ac-box" onClick={() => setOpen((p) => !p)}>
-        {open ? (
+      <div
+        className="scm__ac-box"
+        onClick={() => !loading && setOpen((p) => !p)}>
+        {isOpen ? (
           <div className="scm__ac-search-wrap">
             <SearchIcon
               sx={{ fontSize: "0.9rem", flexShrink: 0, color: "inherit" }}
@@ -129,14 +142,16 @@ const StoreAutocomplete = ({
             className={
               selected || displayValue ? "scm__ac-value" : "scm__ac-placeholder"
             }>
-            {selected ? selected.name : displayValue || "Select store..."}
+            {selected
+              ? selected.name
+              : displayValue || (loading ? "Loading..." : "Select store...")}
           </span>
         )}
         <span className="scm__ac-arrow">
-          {open ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />}
+          {isOpen ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />}
         </span>
       </div>
-      {open && (
+      {isOpen && (
         <div className="scm__ac-dropdown">
           <div className="scm__ac-options">
             {isFetching ? (
@@ -144,14 +159,21 @@ const StoreAutocomplete = ({
             ) : options.length === 0 ? (
               <p className="scm__ac-empty">No stores found</p>
             ) : (
-              options.map((s) => (
-                <div
-                  key={s.id}
-                  className={`scm__ac-option${String(value) === String(s.id) ? " scm__ac-option--selected" : ""}`}
-                  onClick={() => handleSelect(s)}>
-                  {s.name}
-                </div>
-              ))
+              options.map((s) => {
+                const isUsed = disabledIds?.has(String(s.id)) ?? false;
+                return (
+                  <div
+                    key={s.id}
+                    aria-disabled={isUsed}
+                    className={`scm__ac-option${String(value) === String(s.id) ? " scm__ac-option--selected" : ""}${isUsed ? " scm__ac-option--disabled" : ""}`}
+                    onClick={() => !isUsed && handleSelect(s)}>
+                    <span>{s.name}</span>
+                    {isUsed && (
+                      <span className="scm__ac-option-tag">Already used</span>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
@@ -167,6 +189,8 @@ const ChecklistAutocomplete = ({
   error,
   disabled = false,
   displayValue,
+  disabledIds,
+  loading = false,
 }) => {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -216,13 +240,19 @@ const ChecklistAutocomplete = ({
     setOpen(false);
   };
 
+  const isOpen = open && !loading;
+
   return (
-    <div className={`scm__ac${error ? " scm__ac--error" : ""}`} ref={wrapRef}>
+    <div
+      className={`scm__ac${error ? " scm__ac--error" : ""}${loading ? " scm__ac--loading" : ""}`}
+      ref={wrapRef}>
       <label className="scm__label">
         Checklist <span className="scm__required">*</span>
       </label>
-      <div className="scm__ac-box" onClick={() => setOpen((p) => !p)}>
-        {open ? (
+      <div
+        className="scm__ac-box"
+        onClick={() => !loading && setOpen((p) => !p)}>
+        {isOpen ? (
           <div className="scm__ac-search-wrap">
             <SearchIcon
               sx={{ fontSize: "0.9rem", flexShrink: 0, color: "inherit" }}
@@ -242,14 +272,17 @@ const ChecklistAutocomplete = ({
             className={
               selected || displayValue ? "scm__ac-value" : "scm__ac-placeholder"
             }>
-            {selected ? selected.name : displayValue || "Select checklist..."}
+            {selected
+              ? selected.name
+              : displayValue ||
+                (loading ? "Loading..." : "Select checklist...")}
           </span>
         )}
         <span className="scm__ac-arrow">
-          {open ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />}
+          {isOpen ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />}
         </span>
       </div>
-      {open && (
+      {isOpen && (
         <div className="scm__ac-dropdown">
           <div className="scm__ac-options">
             {isFetching ? (
@@ -257,14 +290,21 @@ const ChecklistAutocomplete = ({
             ) : options.length === 0 ? (
               <p className="scm__ac-empty">No checklists found</p>
             ) : (
-              options.map((c) => (
-                <div
-                  key={c.id}
-                  className={`scm__ac-option${String(value) === String(c.id) ? " scm__ac-option--selected" : ""}`}
-                  onClick={() => handleSelect(c)}>
-                  {c.name}
-                </div>
-              ))
+              options.map((c) => {
+                const isUsed = disabledIds?.has(String(c.id)) ?? false;
+                return (
+                  <div
+                    key={c.id}
+                    aria-disabled={isUsed}
+                    className={`scm__ac-option${String(value) === String(c.id) ? " scm__ac-option--selected" : ""}${isUsed ? " scm__ac-option--disabled" : ""}`}
+                    onClick={() => !isUsed && handleSelect(c)}>
+                    <span>{c.name}</span>
+                    {isUsed && (
+                      <span className="scm__ac-option-tag">Already used</span>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
@@ -292,6 +332,41 @@ const StoreChecklistModal = ({ open, onClose, selectedId = null }) => {
       skip: !selectedId || !open,
     });
   const rowData = checklistDetail?.data ?? null;
+
+  // All existing store checklists, used to know which stores/checklists are already taken
+  // Refetched every time the modal opens so the used list is never stale.
+  const {
+    data: storeChecklistsData,
+    isFetching: isUsedFetching,
+    isUninitialized: isUsedUninitialized,
+    isError: isUsedError,
+  } = useGetStoreChecklistsQuery(
+    { status: "active", per_page: 1000 },
+    { skip: !open, refetchOnMountOrArgChange: true },
+  );
+
+  // Fields stay in a loading state until the used list is ready
+  const isUsedLoading =
+    open && !isUsedError && (isUsedFetching || isUsedUninitialized);
+
+  const usedStoreIds = useMemo(() => {
+    const rows = storeChecklistsData?.data?.data ?? [];
+    return new Set(
+      rows
+        .filter((r) => String(r.id) !== String(selectedId))
+        .map((r) => String(r.store?.id)),
+    );
+  }, [storeChecklistsData, selectedId]);
+
+  const usedChecklistIds = useMemo(() => {
+    if (!DISABLE_USED_CHECKLISTS) return new Set();
+    const rows = storeChecklistsData?.data?.data ?? [];
+    return new Set(
+      rows
+        .filter((r) => String(r.id) !== String(selectedId))
+        .map((r) => String(r.checklist?.id)),
+    );
+  }, [storeChecklistsData, selectedId]);
 
   const [createStoreChecklist, { isLoading: isCreating }] =
     useCreateStoreChecklistMutation();
@@ -334,6 +409,21 @@ const StoreChecklistModal = ({ open, onClose, selectedId = null }) => {
   }, [rowData, open, selectedId, reset]);
 
   const onSubmit = async (form) => {
+    if (usedStoreIds.has(String(form.store_id))) {
+      window.__snackbar__?.enqueueSnackbar(
+        "This store already has a store checklist.",
+        { variant: "error" },
+      );
+      return;
+    }
+    if (usedChecklistIds.has(String(form.checklist_id))) {
+      window.__snackbar__?.enqueueSnackbar(
+        "This checklist is already assigned to a store.",
+        { variant: "error" },
+      );
+      return;
+    }
+
     try {
       const payload = {
         store_id: Number(form.store_id),
@@ -437,6 +527,8 @@ const StoreChecklistModal = ({ open, onClose, selectedId = null }) => {
                       onChange={field.onChange}
                       onSelectOption={(store) => setSelectedStore(store)}
                       error={!!errors.store_id}
+                      disabledIds={usedStoreIds}
+                      loading={isUsedLoading}
                       displayValue={
                         selectedId ? rowData?.store?.name : undefined
                       }
@@ -461,6 +553,8 @@ const StoreChecklistModal = ({ open, onClose, selectedId = null }) => {
                         setSelectedChecklist(checklist)
                       }
                       error={!!errors.checklist_id}
+                      disabledIds={usedChecklistIds}
+                      loading={isUsedLoading}
                       displayValue={
                         selectedId ? rowData?.checklist?.name : undefined
                       }
@@ -483,7 +577,7 @@ const StoreChecklistModal = ({ open, onClose, selectedId = null }) => {
                   isLoading ? "Saving..." : mode === "edit" ? "Update" : "Save"
                 }
                 onClick={handleSubmit(onSubmit)}
-                disabled={isLoading}
+                disabled={isLoading || isUsedLoading}
               />
             </div>
           </form>

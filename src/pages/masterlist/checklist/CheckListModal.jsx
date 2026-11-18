@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useFieldArray, Controller, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -27,7 +27,10 @@ import {
   useCreateChecklistMutation,
   useUpdateChecklistMutation,
 } from "../../../features/api/masterlist/checklistApi";
+import { useGetScoreRatingsQuery } from "../../../features/api/masterlist/scoreRatingApi";
 import "./CheckListModal.scss";
+
+console.log("[CheckListModal] LOADED v4 - options from score rating");
 
 const QUESTION_TYPES = [
   {
@@ -47,6 +50,10 @@ const QUESTION_TYPES = [
   },
 ];
 
+// When true, the question type dropdown is disabled (Multiple Choice only).
+// Set to false to bring back the type picker.
+const LOCK_QUESTION_TYPE = true;
+
 const TOTAL_SCORE_GRADE = 100;
 
 const defaultOption = (order_index = 1) => ({
@@ -58,17 +65,13 @@ const defaultQuestion = (order_index = 1) => ({
   question_text: "",
   question_type: "multiple_choice",
   order_index,
-  options: [
-    { option_text: "", order_index: 1 },
-    { option_text: "", order_index: 2 },
-    { option_text: "", order_index: 3 },
-  ],
+  options: [],
 });
 
 const defaultSection = (order_index = 1) => ({
   title: "",
   order_index,
-  score_grade: "",
+  percentage: "",
   questions: [defaultQuestion(1)],
 });
 
@@ -82,7 +85,7 @@ const questionSchema = yup.object({
   question_type: yup.string().required(),
   order_index: yup.number(),
   options: yup.array().when("question_type", {
-    is: (t) => t === "multiple_choice" || t === "checkboxes",
+    is: (t) => t === "checkboxes",
     then: (s) => s.of(optionSchema).min(1, "At least one option is required"),
     otherwise: (s) => s.nullable(),
   }),
@@ -91,7 +94,7 @@ const questionSchema = yup.object({
 const sectionSchema = yup.object({
   title: yup.string().required("Section title is required"),
   order_index: yup.number(),
-  score_grade: yup
+  percentage: yup
     .string()
     .required("Section grade is required")
     .matches(/^\d+$/, "Numbers only"),
@@ -109,13 +112,13 @@ const schema = yup.object({
     .min(1, "At least one section is required")
     .test(
       "total-score-grade",
-      `Total section grade must not exceed ${TOTAL_SCORE_GRADE}%`,
+      `Total section grade must equal exactly ${TOTAL_SCORE_GRADE}%`,
       (sections) => {
         const total = (sections ?? []).reduce(
-          (acc, s) => acc + (Number(s.score_grade) || 0),
+          (acc, s) => acc + (Number(s.percentage) || 0),
           0,
         );
-        return total <= TOTAL_SCORE_GRADE;
+        return total === TOTAL_SCORE_GRADE;
       },
     ),
 });
@@ -140,7 +143,7 @@ const ViewField = ({ label, value }) => (
   </div>
 );
 
-const QuestionTypeSelect = ({ value, onChange, disabled }) => {
+const QuestionTypeSelect = ({ value, onChange, disabled, locked }) => {
   const [open, setOpen] = useState(false);
   const current = QUESTION_TYPES.find((t) => t.value === value);
 
@@ -149,6 +152,25 @@ const QuestionTypeSelect = ({ value, onChange, disabled }) => {
       <div className="clm__type-badge clm__type-badge--view">
         {current?.icon}
         <span>{current?.label}</span>
+      </div>
+    );
+  }
+
+  // Locked: looks like the dropdown but cannot be opened or changed
+  if (locked) {
+    return (
+      <div className="clm__type-select-wrap">
+        <button
+          type="button"
+          className="clm__type-select-btn"
+          disabled
+          style={{ cursor: "not-allowed", opacity: 0.7 }}>
+          {current?.icon}
+          <span>{current?.label}</span>
+          <KeyboardArrowDownIcon
+            sx={{ fontSize: "16px", marginLeft: "auto", opacity: 0.5 }}
+          />
+        </button>
       </div>
     );
   }
@@ -194,13 +216,53 @@ const OptionsEditor = ({
   qIdx,
   qType,
   disabled,
+  ratings,
+  ratingsLoading,
 }) => {
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control,
     name: `sections.${sIdx}.questions.${qIdx}.options`,
   });
 
+  useEffect(() => {
+    if (qType === "checkboxes" && !disabled && fields.length === 0) {
+      replace([defaultOption(1), defaultOption(2), defaultOption(3)]);
+    }
+  }, [qType, disabled, fields.length, replace]);
+
   if (qType === "paragraph") return null;
+
+  if (qType === "multiple_choice") {
+    return (
+      <div className="clm__options-wrap">
+        <p className="clm__options-label">Options</p>
+        {ratingsLoading ? (
+          <p className="clm__options-label">Loading options...</p>
+        ) : ratings.length === 0 ? (
+          <p className="clm__error">
+            <ReportProblemIcon />
+            No score ratings available
+          </p>
+        ) : (
+          ratings.map((r, oIdx) => (
+            <div key={r.id} className="clm__option-row">
+              <div className="clm__option-inputs">
+                <div className="clm__input-wrap clm__input-wrap--sm clm__input-wrap--disabled">
+                  <label className="clm__label">Option {oIdx + 1}</label>
+                  <input
+                    type="text"
+                    value={String(r.score)}
+                    disabled
+                    readOnly
+                  />
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="clm__options-wrap">
@@ -269,6 +331,8 @@ const QuestionCard = ({
   qIdx,
   onRemove,
   disabled,
+  ratings,
+  ratingsLoading,
 }) => {
   const errQ = errors?.sections?.[sIdx]?.questions?.[qIdx];
 
@@ -328,6 +392,7 @@ const QuestionCard = ({
               value={field.value}
               onChange={field.onChange}
               disabled={disabled}
+              locked={LOCK_QUESTION_TYPE}
             />
           )}
         />
@@ -344,6 +409,8 @@ const QuestionCard = ({
               qIdx={qIdx}
               qType={qType}
               disabled={disabled}
+              ratings={ratings}
+              ratingsLoading={ratingsLoading}
             />
           )}
         />
@@ -360,6 +427,8 @@ const SectionCard = ({
   onRemoveSection,
   disabled,
   totalSections,
+  ratings,
+  ratingsLoading,
 }) => {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -372,7 +441,7 @@ const SectionCard = ({
 
   const otherSectionsTotal = watchedSections.reduce((acc, s, idx) => {
     if (idx === sIdx) return acc;
-    return acc + (Number(s?.score_grade) || 0);
+    return acc + (Number(s?.percentage) || 0);
   }, 0);
 
   const remainingGrade = Math.max(0, TOTAL_SCORE_GRADE - otherSectionsTotal);
@@ -425,7 +494,7 @@ const SectionCard = ({
       )}
 
       <div
-        className={`clm__input-wrap${errS?.score_grade ? " clm__input-wrap--error" : ""}${disabled ? " clm__input-wrap--disabled" : ""}`}>
+        className={`clm__input-wrap${errS?.percentage ? " clm__input-wrap--error" : ""}${disabled ? " clm__input-wrap--disabled" : ""}`}>
         <label className="clm__label">
           Section Grade
           {!disabled && <span className="clm__required"> *</span>}
@@ -437,9 +506,9 @@ const SectionCard = ({
           <input
             type="text"
             value={
-              control._formValues?.sections?.[sIdx]?.score_grade !== "" &&
-              control._formValues?.sections?.[sIdx]?.score_grade != null
-                ? `${control._formValues.sections[sIdx].score_grade}%`
+              control._formValues?.sections?.[sIdx]?.percentage !== "" &&
+              control._formValues?.sections?.[sIdx]?.percentage != null
+                ? `${control._formValues.sections[sIdx].percentage}%`
                 : "—"
             }
             disabled
@@ -448,7 +517,7 @@ const SectionCard = ({
         ) : (
           <Controller
             control={control}
-            name={`sections.${sIdx}.score_grade`}
+            name={`sections.${sIdx}.percentage`}
             render={({ field }) => (
               <div style={{ position: "relative" }}>
                 <input
@@ -491,10 +560,10 @@ const SectionCard = ({
           />
         )}
       </div>
-      {errS?.score_grade && (
+      {errS?.percentage && (
         <p className="clm__error">
           <ReportProblemIcon />
-          {errS.score_grade.message}
+          {errS.percentage.message}
         </p>
       )}
 
@@ -508,6 +577,8 @@ const SectionCard = ({
             sIdx={sIdx}
             qIdx={qIdx}
             disabled={disabled}
+            ratings={ratings}
+            ratingsLoading={ratingsLoading}
             onRemove={() => fields.length > 1 && remove(qIdx)}
           />
         ))}
@@ -534,6 +605,17 @@ const CheckListModal = ({ open, onClose, selectedId = null }) => {
       skip: !selectedId || !open,
     });
   const rowData = checklistDetail?.data ?? null;
+
+  const { data: ratingsData, isFetching: ratingsLoading } =
+    useGetScoreRatingsQuery(
+      { status: "active", per_page: 100 },
+      { skip: !open },
+    );
+
+  const ratings = useMemo(() => {
+    const list = ratingsData?.data?.data ?? [];
+    return [...list].sort((a, b) => Number(a.rating) - Number(b.rating));
+  }, [ratingsData]);
 
   const [createChecklist, { isLoading: isCreating }] =
     useCreateChecklistMutation();
@@ -572,60 +654,94 @@ const CheckListModal = ({ open, onClose, selectedId = null }) => {
 
   useEffect(() => {
     if (rowData && open && selectedId) {
+      console.log("[CheckListModal] rowData from API", rowData);
+
       const mapped = {
         name: rowData.name ?? "",
-        sections: (rowData.sections ?? []).map((sec, si) => ({
-          title: sec.title ?? "",
-          order_index: sec.order_index ?? si + 1,
-          score_grade:
-            sec.score_grade !== undefined && sec.score_grade !== null
-              ? String(sec.score_grade)
-              : "",
-          questions: (sec.questions ?? []).map((q, qi) => ({
-            question_text: q.question_text ?? "",
-            question_type: q.question_type ?? "multiple_choice",
-            order_index: q.order_index ?? qi + 1,
-            options: (q.options ?? []).map((o, oi) => ({
-              option_text: o.option_text ?? "",
-              order_index: o.order_index ?? oi + 1,
-              score_rating: o.score_rating_id ?? null,
+        sections: (rowData.sections ?? []).map((sec, si) => {
+          const grade = sec.percentage ?? sec.score_grade;
+          return {
+            title: sec.title ?? "",
+            order_index: sec.order_index ?? si + 1,
+            percentage:
+              grade !== undefined && grade !== null ? String(grade) : "",
+            questions: (sec.questions ?? []).map((q, qi) => ({
+              question_text: q.question_text ?? "",
+              question_type: q.question_type ?? "multiple_choice",
+              order_index: q.order_index ?? qi + 1,
+              options: (q.options ?? []).map((o, oi) => ({
+                option_text: o.option_text ?? "",
+                order_index: o.order_index ?? oi + 1,
+                score_rating: o.score_rating_id ?? null,
+              })),
             })),
-          })),
-        })),
+          };
+        }),
       };
       reset(mapped);
     }
   }, [rowData, open, selectedId, reset]);
 
-  const buildPayload = (form) => ({
-    name: form.name,
-    sections: form.sections.map((sec, si) => ({
-      title: sec.title,
-      order_index: si + 1,
-      score_grade: Number(sec.score_grade),
-      questions: sec.questions.map((q, qi) => {
-        const base = {
-          question_text: q.question_text,
-          question_type: q.question_type,
-          order_index: qi + 1,
-        };
-        if (q.question_type !== "paragraph") {
-          base.options = (q.options ?? []).map((o, oi) => ({
-            option_text: o.option_text,
-            order_index: oi + 1,
-            ...(q.question_type === "multiple_choice" && {
-              score_rating: o.score_rating ?? null,
-            }),
-          }));
-        }
-        return base;
-      }),
-    })),
-  });
+  const buildPayload = (form) => {
+    console.log("[CheckListModal] form values", form);
+
+    return {
+      name: form.name,
+      sections: form.sections.map((sec, si) => ({
+        title: sec.title,
+        order_index: si + 1,
+        percentage: Number(sec.percentage),
+        questions: sec.questions.map((q, qi) => {
+          const base = {
+            question_text: q.question_text,
+            question_type: q.question_type,
+            order_index: qi + 1,
+          };
+          if (q.question_type === "multiple_choice") {
+            base.options = ratings.map((r, oi) => ({
+              option_text: String(r.score),
+              order_index: oi + 1,
+              score_rating: r.id,
+            }));
+          } else if (q.question_type === "checkboxes") {
+            base.options = (q.options ?? []).map((o, oi) => ({
+              option_text: o.option_text,
+              order_index: oi + 1,
+            }));
+          }
+          return base;
+        }),
+      })),
+    };
+  };
 
   const onSubmit = async (form) => {
     try {
+      const hasMultipleChoice = form.sections.some((s) =>
+        s.questions.some((q) => q.question_type === "multiple_choice"),
+      );
+      if (hasMultipleChoice && ratings.length === 0) {
+        window.__snackbar__?.enqueueSnackbar(
+          "No score ratings available for multiple choice options.",
+          { variant: "error" },
+        );
+        return;
+      }
+
       const payload = buildPayload(form);
+
+      console.log("[CheckListModal] PAYLOAD", payload);
+      console.log(
+        "[CheckListModal] PAYLOAD (json)",
+        JSON.stringify(payload, null, 2),
+      );
+      console.log(
+        "[CheckListModal] section percentages",
+        payload.sections.map((s) => s.percentage),
+        "sum =",
+        payload.sections.reduce((a, s) => a + (s.percentage || 0), 0),
+      );
+
       if (mode === "edit") {
         await updateChecklist({ id: selectedId, ...payload }).unwrap();
         window.__snackbar__?.enqueueSnackbar(
@@ -645,12 +761,17 @@ const CheckListModal = ({ open, onClose, selectedId = null }) => {
       }
       onClose();
     } catch (err) {
+      console.error("[CheckListModal] API ERROR", err);
       const detail = err?.data?.errors?.[0]?.detail;
       window.__snackbar__?.enqueueSnackbar(
         detail ?? "Something went wrong. Please try again.",
         { variant: "error" },
       );
     }
+  };
+
+  const onInvalid = (errs) => {
+    console.warn("[CheckListModal] VALIDATION ERRORS", errs);
   };
 
   const headerIcon = {
@@ -692,7 +813,7 @@ const CheckListModal = ({ open, onClose, selectedId = null }) => {
         {checklistLoading ? (
           <SkeletonLoader />
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate>
             <div className="clm__group">
               <p className="clm__group-label">Checklist Details</p>
               <div className="clm__stack">
@@ -735,6 +856,8 @@ const CheckListModal = ({ open, onClose, selectedId = null }) => {
                     sIdx={sIdx}
                     disabled={isDisabled}
                     totalSections={sectionFields.length}
+                    ratings={ratings}
+                    ratingsLoading={ratingsLoading}
                     onRemoveSection={() => removeSection(sIdx)}
                   />
                 ))}
@@ -752,10 +875,10 @@ const CheckListModal = ({ open, onClose, selectedId = null }) => {
                 </button>
               )}
 
-              {errors.sections?.message && (
+              {(errors.sections?.message || errors.sections?.root?.message) && (
                 <p className="clm__error" style={{ marginTop: 6 }}>
                   <ReportProblemIcon />
-                  {errors.sections.message}
+                  {errors.sections?.message ?? errors.sections?.root?.message}
                 </p>
               )}
             </div>
@@ -779,7 +902,7 @@ const CheckListModal = ({ open, onClose, selectedId = null }) => {
                           ? "Update"
                           : "Save"
                     }
-                    onClick={handleSubmit(onSubmit)}
+                    onClick={handleSubmit(onSubmit, onInvalid)}
                     disabled={isLoading}
                   />
                 </>

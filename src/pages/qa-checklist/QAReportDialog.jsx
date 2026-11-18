@@ -128,7 +128,7 @@ const QAReportDialog = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
-  const [viewerAttachment, setViewerAttachment] = useState(null);
+  const [viewerIndex, setViewerIndex] = useState(0);
   const [viewSignatureOpen, setViewSignatureOpen] = useState(false);
   const [isRefused, setIsRefused] = useState(false);
   const [isRefusing, setIsRefusing] = useState(false);
@@ -255,8 +255,8 @@ const QAReportDialog = ({
   const totalMax =
     gradeSummary?.max_score != null ? gradeSummary.max_score : null;
 
-  const handleViewAttachment = (att) => {
-    setViewerAttachment(att);
+  const handleViewAttachment = (index) => {
+    setViewerIndex(index);
     setViewerOpen(true);
   };
 
@@ -738,7 +738,7 @@ const QAReportDialog = ({
                               <AttachmentThumbnail
                                 key={i}
                                 att={att}
-                                onClick={handleViewAttachment}
+                                onClick={() => handleViewAttachment(i)}
                               />
                             ))}
                           </div>
@@ -830,7 +830,9 @@ const QAReportDialog = ({
       <AttachmentViewerDialog
         open={viewerOpen}
         onClose={() => setViewerOpen(false)}
-        attachment={viewerAttachment}
+        attachments={attachments}
+        currentIndex={viewerIndex}
+        onNavigate={setViewerIndex}
       />
       <ViewSignatureDialog
         open={viewSignatureOpen}

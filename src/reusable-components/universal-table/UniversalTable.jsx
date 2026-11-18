@@ -15,6 +15,7 @@ const UniversalTable = ({
   sortBy,
   sortOrder,
   onRowClick,
+  emptyState,
 }) => {
   const safeData = Array.isArray(data) ? data : [];
 
@@ -73,7 +74,7 @@ const UniversalTable = ({
   return (
     <div className="ut">
       {isEmpty ? (
-        <NoDataFound />
+        <NoDataFound {...emptyState} />
       ) : (
         <div className="ut__wrap">
           <table className="ut__table">

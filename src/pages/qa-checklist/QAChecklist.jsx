@@ -56,6 +56,15 @@ const getStoreStatus = (row, month, year, allowableDays) => {
     return "checklist_not_yet_created";
   }
 
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
+  const isFutureMonth =
+    year > currentYear || (year === currentYear && month > currentMonth);
+
+  if (isFutureMonth) return "upcoming";
+
   if (sc?.has_previous_overdue === true) {
     return "previous_month_incomplete";
   }
@@ -69,10 +78,6 @@ const getStoreStatus = (row, month, year, allowableDays) => {
   if (completedWeeks >= 4) {
     return "done";
   }
-
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
 
   const isPastMonth =
     year < currentYear || (year === currentYear && month < currentMonth);
@@ -109,6 +114,7 @@ const getCompletedWeeks = (row) => {
 const SNACKBAR_MESSAGES = {
   checklist_not_yet_created: "Checklist not yet created.",
   previous_month_incomplete: "Previous month is incomplete.",
+  upcoming: "This month is not yet available.",
 };
 
 const columns = (month, year, allowableDays) => [
